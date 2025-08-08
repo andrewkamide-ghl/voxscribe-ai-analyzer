@@ -35,10 +35,6 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    "flex items-center w-full " +
-    getNavCls({ isActive }) +
-    (collapsed ? " justify-center p-0" : " justify-start")
 
   return (
     <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
@@ -70,9 +66,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title} className="flex justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex">
-                  <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined} className="group-data-[collapsible=icon]:!size-10">
-                    <NavLink to={item.url} end className={linkClass}>
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined} className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+                    <NavLink to={item.url} end className={getNavCls}>
                       <item.icon className={collapsed ? "h-5 w-5" : "mr-2 h-4 w-4"} />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
