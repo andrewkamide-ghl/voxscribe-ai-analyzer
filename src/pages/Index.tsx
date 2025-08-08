@@ -278,7 +278,7 @@ const Index = () => {
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="h-screen min-h-screen overflow-hidden bg-background ambient-spotlight"
+      className="h-screen min-h-screen overflow-hidden bg-background ambient-spotlight flex flex-col"
     >
       <Helmet>
         <title>Live Transcription & Speaker Tracking</title>
@@ -330,9 +330,9 @@ const Index = () => {
       </header>
 
       {/* Main */}
-      <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12">
+      <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden">
         {/* Transcript */}
-        <Card className="md:col-span-7">
+        <Card className="md:col-span-7 h-full flex flex-col">
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="text-lg">Transcript</CardTitle>
             <div className="flex items-center gap-3">
@@ -345,9 +345,9 @@ const Index = () => {
             </div>
           </CardHeader>
           <Separator />
-          <CardContent className="p-0">
-            <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="min-h-full px-4 pt-4 pb-0 space-y-3">
+          <CardContent className="p-0 flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="px-4 pt-4 pb-0 space-y-3">
                 {segments.map((s) => (
                   <div
                     key={s.id}
@@ -383,7 +383,7 @@ const Index = () => {
         </Card>
 
         {/* AI Analysis */}
-        <Card className="md:col-span-5 self-start md:sticky md:top-[84px]">
+        <Card className="md:col-span-5 h-full flex flex-col">
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="text-lg">AI Analysis</CardTitle>
             <Button size="sm" onClick={analyzeSelection} disabled={selectedSegments.length === 0}>
@@ -391,15 +391,15 @@ const Index = () => {
             </Button>
           </CardHeader>
           <Separator />
-          <CardContent className="p-4">
-            <Tabs defaultValue="insights" className="w-full">
+          <CardContent className="p-4 flex-1 overflow-hidden">
+            <Tabs defaultValue="insights" className="w-full h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="summary">Summary</TabsTrigger>
                 <TabsTrigger value="insights">Insights</TabsTrigger>
                 <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
               </TabsList>
 
-              <ScrollArea className="h-[calc(100vh-220px)] mt-4 pr-2">
+              <ScrollArea className="h-full flex-1 mt-4 pr-2">
                 <TabsContent value="insights" className="space-y-3">
                   {analyzing ? (
                     <div className="space-y-3">
