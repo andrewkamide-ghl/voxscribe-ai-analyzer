@@ -86,7 +86,7 @@ export function AppSidebar() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={collapsed ? "w-full flex justify-center rounded-md border bg-background p-2" : "w-full flex items-center gap-3 rounded-md border bg-background p-2"}
+                className={collapsed ? "inline-flex p-0 bg-transparent hover:bg-transparent" : "w-full flex items-center gap-3 rounded-md border bg-background p-2"}
                 aria-label="User menu"
               >
                 <Avatar>
