@@ -295,20 +295,24 @@ const Index = () => {
         {/* Transcript */}
         <Card className="md:col-span-7 h-full flex flex-col min-h-0">
           <CardHeader className="flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-lg">Transcript</CardTitle>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CircleDot className={`h-4 w-4 ${connected ? "text-destructive pulse drop-shadow-[0_0_10px_hsl(var(--destructive))]" : "text-muted-foreground"}`} />
-                {connected ? "Recording" : "Disconnected"}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg">Transcript</CardTitle>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CircleDot className={`h-4 w-4 ${connected ? "text-destructive pulse drop-shadow-[0_0_10px_hsl(var(--destructive))]" : "text-muted-foreground"}`} />
+                  {connected ? "Recording" : "Disconnected"}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{segments.length} segments</Badge>
+                {selectedSegments.length > 0 && (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
+                    {selectedSegments.length} selected
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant="outline">{segments.length} segments</Badge>
-              {selectedSegments.length > 0 && (
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-                  {selectedSegments.length} selected
-                </Badge>
-              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   {connected ? (
