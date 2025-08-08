@@ -53,6 +53,14 @@ const Index = () => {
   const [perplexityKey, setPerplexityKey] = useState<string>(() => (typeof window !== "undefined" ? localStorage.getItem("perplexity_api_key") || "" : ""));
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const stickyHeaderRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef(new Map<string, HTMLDivElement>());
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const prevLenRef = useRef<number>(initialSegments.length);
+
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
     id: string;
@@ -101,6 +109,7 @@ const Index = () => {
 
   const selectedSegments = useMemo(() => segments.filter((s) => s.selected), [segments]);
   const selectedText = selectedSegments.map((s) => s.text).join(" \n");
+  const orderedSegments = useMemo(() => segments.slice().reverse(), [segments]);
 
   function toggleSelect(id: string) {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, selected: !s.selected } : s)));
@@ -109,6 +118,55 @@ const Index = () => {
   function clearSelection() {
     setSegments((prev) => prev.map((s) => ({ ...s, selected: false })));
   }
+
+  const handleTranscriptScroll = () => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    const atTopNow = el.scrollTop <= 8;
+    setIsAtTop(atTopNow);
+    if (atTopNow && unreadCount > 0) {
+      setUnreadCount(0);
+      setFirstUnreadId(null);
+    }
+  };
+
+  const scrollToOldestUnread = () => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    if (firstUnreadId) {
+      const target = itemRefs.current.get(firstUnreadId);
+      if (target) {
+        const offset = (stickyHeaderRef.current?.offsetHeight || 0) + 8;
+        const top = target.offsetTop - offset;
+        el.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        setUnreadCount(0);
+        setFirstUnreadId(null);
+        return;
+      }
+    }
+    el.scrollTo({ top: 0, behavior: "smooth" });
+    setUnreadCount(0);
+    setFirstUnreadId(null);
+  };
+
+  useEffect(() => {
+    const curr = segments.length;
+    const prev = prevLenRef.current;
+    if (curr > prev) {
+      const added = curr - prev;
+      const el = transcriptRef.current;
+      if (isAtTop && el) {
+        el.scrollTop = 0;
+      } else {
+        setUnreadCount((c) => c + added);
+        if (!firstUnreadId) {
+          const oldestUnread = segments[added - 1];
+          if (oldestUnread) setFirstUnreadId(oldestUnread.id);
+        }
+      }
+    }
+    prevLenRef.current = curr;
+  }, [segments.length, isAtTop, firstUnreadId]);
 
   async function analyzeSelection() {
     if (selectedSegments.length === 0) {
@@ -322,8 +380,12 @@ const Index = () => {
           </CardHeader>
           <Separator />
           <CardContent className="p-0 flex-1 overflow-hidden min-h-0">
-            <ScrollArea className="h-full min-h-0">
-              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <div
+              ref={transcriptRef}
+              onScroll={handleTranscriptScroll}
+              className="h-full min-h-0 overflow-auto"
+            >
+              <div ref={stickyHeaderRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                 <div className="px-4 py-2 flex items-center justify-end gap-2">
                   <Badge variant="outline" className="rounded-md h-8 box-border py-0">
                     {segments.length} segments
@@ -335,13 +397,26 @@ const Index = () => {
                   )}
                 </div>
               </div>
+
+              {unreadCount > 0 && !isAtTop && (
+                <div className="sticky top-2 z-20 flex justify-center px-4">
+                  <Button size="sm" variant="secondary" onClick={scrollToOldestUnread}>
+                    {unreadCount} New Segment{unreadCount > 1 ? "s" : ""}
+                  </Button>
+                </div>
+              )}
+
               <div className="px-4 pt-4 pb-0 space-y-3">
-                {segments.map((s) => (
+                {orderedSegments.map((s) => (
                   <div
                     key={s.id}
                     role="button"
                     aria-pressed={!!s.selected}
                     onClick={() => toggleSelect(s.id)}
+                    ref={(node) => {
+                      if (node) itemRefs.current.set(s.id, node);
+                      else itemRefs.current.delete(s.id);
+                    }}
                     className={`rounded-md border p-3 transition-colors focus:outline-none hover:bg-muted/50 ${
                       s.selected ? "bg-primary/5 ring-1 ring-primary" : ""
                     }`}
@@ -365,7 +440,7 @@ const Index = () => {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
           </CardContent>
         </Card>
