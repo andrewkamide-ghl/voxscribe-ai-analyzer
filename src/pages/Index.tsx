@@ -330,7 +330,7 @@ const Index = () => {
       </header>
 
       {/* Main */}
-      <main className="container mx-auto px-4 pt-6 pb-0 grid gap-3 md:grid-cols-12">
+      <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12">
         {/* Transcript */}
         <Card className="md:col-span-7">
           <CardHeader className="flex-row items-center justify-between">
@@ -347,7 +347,7 @@ const Index = () => {
           <Separator />
           <CardContent className="p-0">
             <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="p-4 space-y-3">
+              <div className="min-h-full p-4 space-y-3">
                 {segments.map((s) => (
                   <div
                     key={s.id}
