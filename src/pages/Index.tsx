@@ -56,10 +56,10 @@ const Index = () => {
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const stickyHeaderRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef(new Map<string, HTMLDivElement>());
-  const [isAtTop, setIsAtTop] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
-  const prevLenRef = useRef<number>(initialSegments.length);
+const [isAtTop, setIsAtTop] = useState(true);
+const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
+const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+const prevLenRef = useRef<number>(initialSegments.length);
 
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
@@ -124,30 +124,33 @@ const Index = () => {
     if (!el) return;
     const atTopNow = el.scrollTop <= 8;
     setIsAtTop(atTopNow);
-    if (atTopNow && unreadCount > 0) {
-      setUnreadCount(0);
-      setFirstUnreadId(null);
-    }
+if (atTopNow && unreadIds.size > 0) {
+  setUnreadIds(new Set());
+  setFirstUnreadId(null);
+}
   };
 
-  const scrollToOldestUnread = () => {
-    const el = transcriptRef.current;
-    if (!el) return;
-    if (firstUnreadId) {
-      const target = itemRefs.current.get(firstUnreadId);
-      if (target) {
-        const offset = (stickyHeaderRef.current?.offsetHeight || 0) + 8;
-        const top = target.offsetTop - offset;
-        el.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-        setUnreadCount(0);
-        setFirstUnreadId(null);
-        return;
-      }
+const scrollToOldestUnread = () => {
+  const el = transcriptRef.current;
+  if (!el) return;
+  if (firstUnreadId) {
+    const target = itemRefs.current.get(firstUnreadId);
+    if (target) {
+      const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
+      const elRect = el.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      // Position target just below the sticky header with a small gap
+      const desiredTop = el.scrollTop + (targetRect.top - elRect.top) - headerH - 12;
+      el.scrollTo({ top: Math.max(0, desiredTop), behavior: "smooth" });
+      setUnreadIds(new Set());
+      setFirstUnreadId(null);
+      return;
     }
-    el.scrollTo({ top: 0, behavior: "smooth" });
-    setUnreadCount(0);
-    setFirstUnreadId(null);
-  };
+  }
+  el.scrollTo({ top: 0, behavior: "smooth" });
+  setUnreadIds(new Set());
+  setFirstUnreadId(null);
+};
 
   useEffect(() => {
     const curr = segments.length;
@@ -158,11 +161,18 @@ const Index = () => {
       if (isAtTop && el) {
         el.scrollTop = 0;
       } else {
-        setUnreadCount((c) => c + added);
-        if (!firstUnreadId) {
-          const oldestUnread = segments[prev];
-          if (oldestUnread) setFirstUnreadId(oldestUnread.id);
-        }
+setUnreadIds((prevSet) => {
+  const next = new Set(prevSet);
+  for (let i = prev; i < curr; i++) {
+    const seg = segments[i];
+    if (seg) next.add(seg.id);
+  }
+  return next;
+});
+if (!firstUnreadId) {
+  const oldestUnread = segments[prev];
+  if (oldestUnread) setFirstUnreadId(oldestUnread.id);
+}
       }
     }
     prevLenRef.current = curr;
@@ -398,13 +408,13 @@ const Index = () => {
                 </div>
               </div>
 
-              {unreadCount > 0 && !isAtTop && (
-                <div className="sticky top-2 z-20 flex justify-center px-4">
-                  <Button size="sm" variant="secondary" onClick={scrollToOldestUnread}>
-                    {unreadCount} New Segment{unreadCount > 1 ? "s" : ""}
-                  </Button>
-                </div>
-              )}
+{unreadIds.size > 0 && !isAtTop && (
+  <div className="sticky top-2 z-20 flex justify-center px-4">
+    <Button size="sm" variant="secondary" onClick={scrollToOldestUnread}>
+      {unreadIds.size} New Segment{unreadIds.size > 1 ? "s" : ""}
+    </Button>
+  </div>
+)}
 
               <div className="px-4 pt-4 pb-0 space-y-3">
                 {orderedSegments.map((s) => (
@@ -417,10 +427,9 @@ const Index = () => {
                       if (node) itemRefs.current.set(s.id, node);
                       else itemRefs.current.delete(s.id);
                     }}
-                    className={`rounded-md border p-3 transition-colors focus:outline-none hover:bg-muted/50 ${
-                      s.selected ? "bg-primary/5 ring-1 ring-primary" : ""
-                    }`}
-                  >
+className={`rounded-md border p-3 transition-colors focus:outline-none hover:bg-muted/50 ${
+  s.selected ? "bg-primary/5 ring-1 ring-primary" : unreadIds.has(s.id) ? "ring-1 ring-primary/40" : ""
+}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="rounded-md">{s.speaker}</Badge>
