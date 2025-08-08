@@ -35,6 +35,8 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    getNavCls({ isActive }) + (collapsed ? " justify-center p-0" : "")
 
   return (
     <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
@@ -68,8 +70,8 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined} className="group-data-[collapsible=icon]:!size-10">
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="mr-2 h-4 w-4" />
+                    <NavLink to={item.url} end className={linkClass}>
+                      <item.icon className={collapsed ? "h-5 w-5" : "mr-2 h-4 w-4"} />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
