@@ -291,7 +291,7 @@ const Index = () => {
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
-        <div className="container mx-auto pr-4 pl-0 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-md bg-primary/10 grid place-items-center text-primary shadow-glow">
               <Mic className="h-4 w-4" />
@@ -326,7 +326,7 @@ const Index = () => {
       </header>
 
       {/* Main */}
-      <main className="container mx-auto pr-4 pl-0 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden min-h-0">
+      <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden min-h-0">
         {/* Transcript */}
         <Card className="md:col-span-7 h-full flex flex-col min-h-0">
           <CardHeader className="flex-row items-center justify-between">
