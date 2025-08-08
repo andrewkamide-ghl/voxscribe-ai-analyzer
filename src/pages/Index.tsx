@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
-import { CircleDot, Mic, PauseCircle, PlayCircle, Scissors, Sparkles, ShieldCheck, Download } from "lucide-react";
+import { CircleDot, Mic, PauseCircle, PlayCircle, Scissors, Sparkles, ShieldCheck, Download, ArrowUp } from "lucide-react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -56,10 +56,29 @@ const Index = () => {
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const stickyHeaderRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef(new Map<string, HTMLDivElement>());
-const [isAtTop, setIsAtTop] = useState(true);
-const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
-const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
-const prevLenRef = useRef<number>(initialSegments.length);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const prevLenRef = useRef<number>(initialSegments.length);
+  // Positioning for the unread overlay button (just under the sticky header)
+  const [overlayTop, setOverlayTop] = useState<number>(0);
+  useEffect(() => {
+    const updateTop = () => {
+      const h = stickyHeaderRef.current?.offsetHeight ?? 0;
+      setOverlayTop(h + 8); // 8px gap under the header
+    };
+    updateTop();
+    let ro: ResizeObserver | undefined;
+    if (stickyHeaderRef.current && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => updateTop());
+      ro.observe(stickyHeaderRef.current);
+    }
+    window.addEventListener("resize", updateTop);
+    return () => {
+      window.removeEventListener("resize", updateTop);
+      if (ro) ro.disconnect();
+    };
+  }, []);
 
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
@@ -133,23 +152,35 @@ if (atTopNow && unreadIds.size > 0) {
 const scrollToOldestUnread = () => {
   const el = transcriptRef.current;
   if (!el) return;
+  const overlayButtonHeight = 32; // px (h-8)
+  const extraMargin = 12; // safety margin
   if (firstUnreadId) {
     const target = itemRefs.current.get(firstUnreadId);
     if (target) {
       const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
       const elRect = el.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      // Position target just below the sticky header with a small gap
-      const desiredTop = el.scrollTop + (targetRect.top - elRect.top) - headerH - 12;
+      const desiredTop =
+        el.scrollTop +
+        (targetRect.top - elRect.top) -
+        headerH -
+        8 - // gap under header
+        overlayButtonHeight -
+        extraMargin;
       el.scrollTo({ top: Math.max(0, desiredTop), behavior: "smooth" });
-      setUnreadIds(new Set());
-      setFirstUnreadId(null);
+      // Keep the overlay visible during scroll to avoid mid-animation offset changes
+      setTimeout(() => {
+        setUnreadIds(new Set());
+        setFirstUnreadId(null);
+      }, 400);
       return;
     }
   }
   el.scrollTo({ top: 0, behavior: "smooth" });
-  setUnreadIds(new Set());
-  setFirstUnreadId(null);
+  setTimeout(() => {
+    setUnreadIds(new Set());
+    setFirstUnreadId(null);
+  }, 400);
 };
 
   useEffect(() => {
@@ -393,7 +424,7 @@ if (!firstUnreadId) {
             <div
               ref={transcriptRef}
               onScroll={handleTranscriptScroll}
-              className="h-full min-h-0 overflow-auto"
+              className="h-full min-h-0 overflow-auto relative"
             >
               <div ref={stickyHeaderRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                 <div className="px-4 py-2 flex items-center justify-end gap-2">
@@ -409,9 +440,17 @@ if (!firstUnreadId) {
               </div>
 
 {unreadIds.size > 0 && !isAtTop && (
-  <div className="sticky top-2 z-20 flex justify-center px-4">
-    <Button size="sm" variant="secondary" onClick={scrollToOldestUnread}>
-      {unreadIds.size} New Segment{unreadIds.size > 1 ? "s" : ""}
+  <div
+    className="absolute left-0 right-0 z-30 flex justify-center px-4 pointer-events-none"
+    style={{ top: overlayTop }}
+  >
+    <Button
+      variant="default"
+      onClick={scrollToOldestUnread}
+      className="h-8 px-3 py-0 rounded-md pointer-events-auto"
+    >
+      View Unread Segment
+      <ArrowUp className="ml-2 h-4 w-4" aria-hidden="true" />
     </Button>
   </div>
 )}
