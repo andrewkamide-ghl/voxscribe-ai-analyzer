@@ -81,7 +81,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className={collapsed ? "p-2 space-y-2 flex items-center justify-center" : "p-2 space-y-2">
+        <div className={collapsed ? "p-2 space-y-2 flex items-center justify-center" : "p-2 space-y-2"}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
