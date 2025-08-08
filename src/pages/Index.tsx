@@ -298,10 +298,6 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-base font-semibold leading-tight">Live Transcription</h1>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CircleDot className={`h-3 w-3 ${connected ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
-                {connected ? "Listening" : "Disconnected"}
-              </div>
             </div>
             <Badge variant="secondary" className="ml-1">Beta</Badge>
           </div>
@@ -334,7 +330,13 @@ const Index = () => {
         {/* Transcript */}
         <Card className="md:col-span-7 h-full flex flex-col min-h-0">
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-lg">Transcript</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">Transcript</CardTitle>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CircleDot className={`h-3 w-3 ${connected ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
+                {connected ? "Listening" : "Disconnected"}
+              </div>
+            </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline">{segments.length} segments</Badge>
               {selectedSegments.length > 0 && (
