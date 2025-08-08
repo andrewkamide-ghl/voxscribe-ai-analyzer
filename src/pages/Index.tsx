@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
@@ -292,7 +293,7 @@ const Index = () => {
       <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden min-h-0">
         {/* Transcript */}
         <Card className="md:col-span-7 h-full flex flex-col min-h-0">
-          <CardHeader className="flex-row items-center justify-between min-h-[72px]">
+          <CardHeader className="flex-row items-center justify-between min-h-[72px] py-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-lg">Transcript</CardTitle>
