@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const items = [
   { title: "Home", url: "/", icon: Home },
@@ -38,7 +39,7 @@ export function AppSidebar() {
   return (
     <Sidebar style={{ ["--sidebar-width" as any]: "14rem" } as any} collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+        <div className={collapsed ? "flex flex-col items-center gap-2 px-2 py-2" : "flex items-center justify-between gap-2 px-2 py-1.5"}>
           <div className="flex items-center gap-2">
             <img
               src="/placeholder.svg"
@@ -49,7 +50,7 @@ export function AppSidebar() {
             {!collapsed && <span className="text-base font-semibold">DebateMate</span>}
           </div>
           <Button
-            aria-label="Collapse sidebar"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
@@ -81,7 +82,7 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="p-2 space-y-2">
-          <div className="flex items-center gap-3 rounded-md border bg-background p-2">
+          <div className={collapsed ? "flex justify-center rounded-md border bg-background p-2" : "flex items-center gap-3 rounded-md border bg-background p-2"}>
             <Avatar>
               <AvatarImage src="/placeholder.svg" alt="User avatar" />
               <AvatarFallback>
@@ -95,13 +96,21 @@ export function AppSidebar() {
               </div>
             )}
           </div>
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => toast.success("Logged out")}
-          >
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size={collapsed ? "icon" : "default"}
+                className={collapsed ? "w-full justify-center" : "w-full justify-start"}
+                onClick={() => toast.success("Logged out")}
+                aria-label="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+                {!collapsed && <span className="ml-2">Logout</span>}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Logout</TooltipContent>
+          </Tooltip>
         </div>
       </SidebarFooter>
     </Sidebar>
