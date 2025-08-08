@@ -383,7 +383,7 @@ const Index = () => {
 
               <ScrollArea className="h-full flex-1 min-h-0">
                 <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-                  <div className="px-4 py-2">
+                  <div className="px-4 py-2 flex items-center justify-end gap-2">
                     <TabsList className="grid w-full grid-cols-3 h-8">
                       <TabsTrigger value="summary" className="px-2 py-1 text-xs rounded-md">Summary</TabsTrigger>
                       <TabsTrigger value="insights" className="px-2 py-1 text-xs rounded-md">Insights</TabsTrigger>
