@@ -109,6 +109,91 @@ const Index = () => {
     }, 1600);
   }
 
+  function scoreColor(score: number) {
+    if (score >= 75) return "bg-green-600 text-white";
+    if (score >= 45) return "bg-yellow-500 text-black";
+    return "bg-red-600 text-white";
+  }
+
+  async function factCheck() {
+    if (selectedSegments.length === 0) {
+      toast({ title: "No selection", description: "Select transcript segments to fact check." });
+      return;
+    }
+    if (!perplexityKey) {
+      toast({ title: "API key required", description: "Add a Perplexity API key below to enable fact checking." });
+      return;
+    }
+
+    try {
+      setFactChecking(true);
+      toast({ title: "Fact checking…", description: "Searching the web and evaluating statements." });
+
+      const statements = selectedText
+        .split(/\n+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
+      const response = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${perplexityKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-sonar-small-128k-online",
+          temperature: 0.2,
+          top_p: 0.9,
+          max_tokens: 900,
+          search_recency_filter: "year",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a precise fact-checker. Given a list of statements, search the web and return strictly a JSON array where each item has {\"statement\": string, \"score\": integer 0-100 (likelihood the statement is factually correct), \"citations\": string[] of up to 3 relevant URLs}. Do not include any extra text.",
+            },
+            {
+              role: "user",
+              content: statements.map((s, i) => `${i + 1}. ${s}`).join("\n"),
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content as string;
+
+      let parsed: any[] = [];
+      if (content) {
+        const match = content.match(/\[[\s\S]*\]/);
+        if (match) {
+          parsed = JSON.parse(match[0]);
+        }
+      }
+
+      const results = Array.isArray(parsed)
+        ? parsed.map((it: any) => ({
+            statement: typeof it.statement === "string" ? it.statement : "",
+            score: Math.max(0, Math.min(100, Number(it.score) || 0)),
+            citations: Array.isArray(it.citations) ? it.citations.slice(0, 3) : [],
+          }))
+        : [];
+
+      setFactResults(results);
+      toast({ title: "Fact check complete", description: "See scores and citations below." });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Fact check failed",
+        description: "Verify your API key and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFactChecking(false);
+    }
+  }
+
   return (
     <div
       ref={containerRef}
@@ -228,10 +313,9 @@ const Index = () => {
           <Separator />
           <CardContent className="p-4">
             <Tabs defaultValue="insights" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="insights">Insights</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="actions">Actions</TabsTrigger>
+                <TabsTrigger value="insights">Insights</TabsTrigger>
                 <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
               </TabsList>
 
@@ -267,19 +351,6 @@ const Index = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="actions" className="mt-4 space-y-2">
-                {analyzing ? (
-                  <div className="space-y-3">
-                    <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
-                    <div className="h-4 w-1/2 rounded bg-muted animate-pulse" />
-                  </div>
-                ) : (
-                  <ul className="list-disc pl-5 text-sm text-foreground/90">
-                    <li>Draft experiment to simplify email verification step.</li>
-                    <li>Prepare sprint plan focusing on onboarding friction.</li>
-                  </ul>
-                )}
-              </TabsContent>
 
               <TabsContent value="factcheck" className="mt-4 space-y-3">
                 {!selectedText ? (
