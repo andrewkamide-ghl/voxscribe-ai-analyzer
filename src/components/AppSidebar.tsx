@@ -67,7 +67,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined}>
+                  <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined} className="group-data-[collapsible=icon]:!size-10">
                     <NavLink to={item.url} end className={getNavCls}>
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
