@@ -177,7 +177,7 @@ const Index = () => {
           </CardHeader>
           <Separator />
           <CardContent className="p-0">
-            <ScrollArea className="h-[56vh]">
+            <ScrollArea className="h-[calc(100vh-220px)]">
               <div className="p-4 space-y-3">
                 {segments.map((s) => (
                   <div
@@ -210,22 +210,6 @@ const Index = () => {
               </div>
             </ScrollArea>
 
-            {/* Selection actions */}
-            <div className="sticky bottom-0 border-t bg-background/80 backdrop-blur p-3 flex items-center gap-2 justify-between">
-              <div className="text-xs text-muted-foreground">
-                {selectedSegments.length > 0
-                  ? `${selectedSegments.length} segment${selectedSegments.length > 1 ? "s" : ""} selected`
-                  : "Select transcript parts to analyze in real time"}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" onClick={clearSelection} disabled={selectedSegments.length === 0}>
-                  <Scissors className="mr-2 h-4 w-4" /> Clear
-                </Button>
-                <Button size="sm" onClick={analyzeSelection} disabled={selectedSegments.length === 0}>
-                  <Sparkles className="mr-2 h-4 w-4" /> Analyze selection
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
