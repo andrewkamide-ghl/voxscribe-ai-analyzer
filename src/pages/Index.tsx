@@ -380,7 +380,6 @@ const Index = () => {
           <Separator />
           <CardContent className="p-4 flex-1 overflow-hidden min-h-0">
             <Tabs defaultValue="insights" className="w-full h-full flex flex-col min-h-0">
-
               <ScrollArea className="h-full flex-1 min-h-0">
                 <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                   <div className="px-4 py-2 flex items-center justify-end gap-2">
