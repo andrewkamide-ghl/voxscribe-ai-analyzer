@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 const items = [
   { title: "Home", url: "/", icon: Home },
@@ -82,35 +82,36 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="p-2 space-y-2">
-          <div className={collapsed ? "flex justify-center rounded-md border bg-background p-2" : "flex items-center gap-3 rounded-md border bg-background p-2"}>
-            <Avatar>
-              <AvatarImage src="/placeholder.svg" alt="User avatar" />
-              <AvatarFallback>
-                <User2 className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-            {!collapsed && (
-              <div className="grid">
-                <span className="text-sm font-medium leading-none">John Doe</span>
-                <span className="text-xs text-muted-foreground">john@example.com</span>
-              </div>
-            )}
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size={collapsed ? "icon" : "default"}
-                className={collapsed ? "w-full justify-center" : "w-full justify-start"}
-                onClick={() => toast.success("Logged out")}
-                aria-label="Logout"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={collapsed ? "w-full flex justify-center rounded-md border bg-background p-2" : "w-full flex items-center gap-3 rounded-md border bg-background p-2"}
+                aria-label="User menu"
               >
-                <LogOut className="h-4 w-4" />
-                {!collapsed && <span className="ml-2">Logout</span>}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Logout</TooltipContent>
-          </Tooltip>
+                <Avatar>
+                  <AvatarImage src="/placeholder.svg" alt="User avatar" />
+                  <AvatarFallback>
+                    <User2 className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                {!collapsed && (
+                  <div className="grid text-left">
+                    <span className="text-sm font-medium leading-none">John Doe</span>
+                    <span className="text-xs text-muted-foreground">john@example.com</span>
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-56">
+              <DropdownMenuItem onClick={() => toast.message("Edit Profile", { description: "Profile editor coming soon." })}>
+                Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.success("Logged out")}>
+                <LogOut className="mr-2 h-4 w-4" /> Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </SidebarFooter>
     </Sidebar>
