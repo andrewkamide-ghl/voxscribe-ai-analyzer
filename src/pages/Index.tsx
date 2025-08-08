@@ -299,7 +299,7 @@ const Index = () => {
               <CardTitle className="text-lg">Transcript</CardTitle>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CircleDot className={`h-3 w-3 ${connected ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
-                {connected ? "Listening" : "Disconnected"}
+                Transcribing
               </div>
             </div>
             <div className="flex items-center gap-3">
