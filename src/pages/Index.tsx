@@ -278,7 +278,7 @@ const Index = () => {
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="min-h-[25vh] bg-background ambient-spotlight"
+      className="h-screen min-h-screen overflow-hidden bg-background ambient-spotlight"
     >
       <Helmet>
         <title>Live Transcription & Speaker Tracking</title>
