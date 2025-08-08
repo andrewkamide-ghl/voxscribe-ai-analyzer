@@ -347,7 +347,7 @@ const Index = () => {
           <Separator />
           <CardContent className="p-0">
             <ScrollArea className="h-[calc(100vh-220px)]">
-              <div className="min-h-full p-4 space-y-3">
+              <div className="min-h-full px-4 pt-4 pb-0 space-y-3">
                 {segments.map((s) => (
                   <div
                     key={s.id}
