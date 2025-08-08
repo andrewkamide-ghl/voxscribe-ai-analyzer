@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom"
-import { Home, PhoneCall, Folder, Settings, LogOut, User2 } from "lucide-react"
+import { Home, PhoneCall, Folder, Settings, LogOut, User2, PanelLeft } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -26,7 +26,7 @@ const items = [
 ]
 
 export function AppSidebar() {
-  const { state } = useSidebar()
+  const { state, toggleSidebar } = useSidebar()
   const collapsed = state === "collapsed"
   const location = useLocation()
   const currentPath = location.pathname
@@ -36,16 +36,26 @@ export function AppSidebar() {
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
+    <Sidebar style={{ ["--sidebar-width" as any]: "14rem" } as any} collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <img
-            src="/placeholder.svg"
-            alt="DebateMate logo"
-            className="h-6 w-6 rounded"
-            loading="lazy"
-          />
-          {!collapsed && <span className="text-base font-semibold">DebateMate</span>}
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+          <div className="flex items-center gap-2">
+            <img
+              src="/placeholder.svg"
+              alt="DebateMate logo"
+              className="h-6 w-6 rounded"
+              loading="lazy"
+            />
+            {!collapsed && <span className="text-base font-semibold">DebateMate</span>}
+          </div>
+          <Button
+            aria-label="Collapse sidebar"
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+          >
+            <PanelLeft className="h-4 w-4" />
+          </Button>
         </div>
       </SidebarHeader>
 
