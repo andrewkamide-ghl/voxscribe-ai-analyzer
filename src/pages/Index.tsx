@@ -384,7 +384,7 @@ const Index = () => {
 
         {/* AI Analysis */}
         <Card className="md:col-span-5 h-full flex flex-col min-h-0">
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex-row items-center justify-between min-h-[72px]">
             <CardTitle className="text-lg">AI Analysis</CardTitle>
             <Button size="sm" onClick={analyzeSelection} disabled={selectedSegments.length === 0}>
               <Sparkles className="mr-2 h-4 w-4" /> Analyze
