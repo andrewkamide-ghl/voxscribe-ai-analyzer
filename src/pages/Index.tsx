@@ -161,7 +161,7 @@ const Index = () => {
       </header>
 
       {/* Main */}
-      <main className="container mx-auto px-4 py-6 grid gap-6 md:grid-cols-12">
+      <main className="container mx-auto px-4 pt-6 pb-0 grid gap-3 md:grid-cols-12">
         {/* Transcript */}
         <Card className="md:col-span-7">
           <CardHeader className="flex-row items-center justify-between">
