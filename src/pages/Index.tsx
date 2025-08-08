@@ -289,27 +289,6 @@ const Index = () => {
         <link rel="canonical" href={typeof window !== "undefined" ? window.location.href : "https://localhost:8080/"} />
       </Helmet>
 
-      {/* Header */}
-      <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-md bg-primary/10 grid place-items-center text-primary shadow-glow">
-              <Mic className="h-4 w-4" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold leading-tight">Live Transcription</h1>
-            </div>
-            <Badge variant="secondary" className="ml-1">Beta</Badge>
-          </div>
-
-          <div className="flex items-center gap-2">
-
-            <Button variant="secondary" size="sm" onClick={() => setSimulate((s) => !s)}>
-              <Sparkles className="mr-2 h-4 w-4" /> Demo stream
-            </Button>
-          </div>
-        </div>
-      </header>
 
       {/* Main */}
       <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden min-h-0">
