@@ -36,7 +36,9 @@ export function AppSidebar() {
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    getNavCls({ isActive }) + (collapsed ? " justify-center p-0" : " justify-start")
+    "flex items-center w-full " +
+    getNavCls({ isActive }) +
+    (collapsed ? " justify-center p-0" : " justify-start")
 
   return (
     <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
