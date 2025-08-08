@@ -325,9 +325,11 @@ const Index = () => {
             <ScrollArea className="h-full min-h-0">
               <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                 <div className="px-4 py-2 flex items-center justify-end gap-2">
-                  <Badge variant="outline" className="rounded-md">{segments.length} segments</Badge>
+                  <Badge variant="outline" className="rounded-md h-8 box-border py-0">
+                    {segments.length} segments
+                  </Badge>
                   {selectedSegments.length > 0 && (
-                    <Badge className="rounded-md bg-primary/10 text-primary hover:bg-primary/20">
+                    <Badge className="rounded-md h-8 box-border py-0 bg-primary/10 text-primary hover:bg-primary/20">
                       {selectedSegments.length} selected
                     </Badge>
                   )}
