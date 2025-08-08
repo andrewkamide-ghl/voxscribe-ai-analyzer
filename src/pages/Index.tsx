@@ -380,13 +380,17 @@ const Index = () => {
           <Separator />
           <CardContent className="p-4 flex-1 overflow-hidden min-h-0">
             <Tabs defaultValue="insights" className="w-full h-full flex flex-col min-h-0">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="insights">Insights</TabsTrigger>
-                <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
-              </TabsList>
 
-              <ScrollArea className="h-full flex-1 min-h-0 mt-4 pr-2">
+              <ScrollArea className="h-full flex-1 min-h-0 pr-2">
+                <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+                  <div className="px-4 py-2">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="summary">Summary</TabsTrigger>
+                      <TabsTrigger value="insights">Insights</TabsTrigger>
+                      <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
+                    </TabsList>
+                  </div>
+                </div>
                 <TabsContent value="insights" className="space-y-3">
                   {analyzing ? (
                     <div className="space-y-3">
