@@ -373,9 +373,6 @@ const Index = () => {
         <Card className="md:col-span-5 h-full flex flex-col min-h-0">
           <CardHeader className="flex-row items-center justify-between min-h-[72px]">
             <CardTitle className="text-lg">AI Assistant</CardTitle>
-            <Button size="sm" onClick={analyzeSelection} disabled={selectedSegments.length === 0}>
-              <Sparkles className="mr-2 h-4 w-4" /> Analyze
-            </Button>
           </CardHeader>
           <Separator />
           <CardContent className="p-4 flex-1 overflow-hidden min-h-0">
@@ -383,7 +380,12 @@ const Index = () => {
 
               <ScrollArea className="h-full flex-1 min-h-0 pr-2">
                 <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-                  <div className="px-4 py-2">
+                  <div className="px-4 py-2 flex items-center justify-end gap-2">
+                    <Button size="sm" onClick={analyzeSelection} disabled={selectedSegments.length === 0}>
+                      <Sparkles className="mr-2 h-4 w-4" /> Analyze
+                    </Button>
+                  </div>
+                  <div className="px-4 pb-2">
                     <TabsList className="grid w-full grid-cols-3 h-8">
                       <TabsTrigger value="summary" className="px-2 py-1 text-xs rounded-md">Summary</TabsTrigger>
                       <TabsTrigger value="insights" className="px-2 py-1 text-xs rounded-md">Insights</TabsTrigger>
