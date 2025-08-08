@@ -303,20 +303,6 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {connected ? (
-                  <Button variant="destructive" size="sm" onClick={() => setConnected(false)}>
-                    <PauseCircle className="mr-2 h-4 w-4" /> Stop
-                  </Button>
-                ) : (
-                  <Button variant="default" size="sm" onClick={() => setConnected(true)}>
-                    <PlayCircle className="mr-2 h-4 w-4" /> Start
-                  </Button>
-                )}
-              </TooltipTrigger>
-              <TooltipContent>Toggle live session</TooltipContent>
-            </Tooltip>
 
             <Button variant="secondary" size="sm" onClick={() => setSimulate((s) => !s)}>
               <Sparkles className="mr-2 h-4 w-4" /> Demo stream
@@ -344,6 +330,20 @@ const Index = () => {
                   {selectedSegments.length} selected
                 </Badge>
               )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {connected ? (
+                    <Button variant="destructive" size="sm" onClick={() => setConnected(false)}>
+                      <PauseCircle className="mr-2 h-4 w-4" /> Stop
+                    </Button>
+                  ) : (
+                    <Button variant="default" size="sm" onClick={() => setConnected(true)}>
+                      <PlayCircle className="mr-2 h-4 w-4" /> Start
+                    </Button>
+                  )}
+                </TooltipTrigger>
+                <TooltipContent>Toggle live session</TooltipContent>
+              </Tooltip>
             </div>
           </CardHeader>
           <Separator />
