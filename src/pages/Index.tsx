@@ -160,7 +160,7 @@ const Index = () => {
       } else {
         setUnreadCount((c) => c + added);
         if (!firstUnreadId) {
-          const oldestUnread = segments[added - 1];
+          const oldestUnread = segments[prev];
           if (oldestUnread) setFirstUnreadId(oldestUnread.id);
         }
       }
