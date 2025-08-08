@@ -326,9 +326,9 @@ const Index = () => {
             <ScrollArea className="h-full min-h-0">
               <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                 <div className="px-4 py-2 flex items-center justify-end gap-2">
-                  <Badge variant="outline">{segments.length} segments</Badge>
+                  <Badge variant="outline" className="rounded-md">{segments.length} segments</Badge>
                   {selectedSegments.length > 0 && (
-                    <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
+                    <Badge className="rounded-md bg-primary/10 text-primary hover:bg-primary/20">
                       {selectedSegments.length} selected
                     </Badge>
                   )}
@@ -347,7 +347,7 @@ const Index = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{s.speaker}</Badge>
+                        <Badge variant="outline" className="rounded-md">{s.speaker}</Badge>
                         <span className="text-xs text-muted-foreground">{s.timestamp}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -384,10 +384,10 @@ const Index = () => {
               <ScrollArea className="h-full flex-1 min-h-0 pr-2">
                 <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                   <div className="px-4 py-2">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="summary">Summary</TabsTrigger>
-                      <TabsTrigger value="insights">Insights</TabsTrigger>
-                      <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3 h-8">
+                      <TabsTrigger value="summary" className="px-2 py-1 text-xs rounded-md">Summary</TabsTrigger>
+                      <TabsTrigger value="insights" className="px-2 py-1 text-xs rounded-md">Insights</TabsTrigger>
+                      <TabsTrigger value="factcheck" className="px-2 py-1 text-xs rounded-md">Fact Check</TabsTrigger>
                     </TabsList>
                   </div>
                 </div>
