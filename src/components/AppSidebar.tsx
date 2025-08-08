@@ -37,7 +37,7 @@ export function AppSidebar() {
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
 
   return (
-    <Sidebar style={{ ["--sidebar-width" as any]: "14rem" } as any} collapsible="icon">
+    <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
       <SidebarHeader>
         <div className={collapsed ? "flex flex-col items-center gap-2 px-2 py-2" : "flex items-center justify-between gap-2 px-2 py-1.5"}>
           <div className="flex items-center gap-2">
@@ -81,7 +81,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="p-2 space-y-2">
+        <div className={collapsed ? "p-2 space-y-2 flex items-center justify-center" : "p-2 space-y-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
