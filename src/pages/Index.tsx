@@ -6,9 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
-import { CircleDot, Mic, PauseCircle, PlayCircle, Scissors, Sparkles } from "lucide-react";
+import { CircleDot, Mic, PauseCircle, PlayCircle, Scissors, Sparkles, ShieldCheck } from "lucide-react";
 
 interface Segment {
   id: string;
@@ -44,6 +45,9 @@ const Index = () => {
   const [segments, setSegments] = useState<Segment[]>(initialSegments);
   const [analyzing, setAnalyzing] = useState(false);
   const [simulate, setSimulate] = useState(true);
+  const [factChecking, setFactChecking] = useState(false);
+  const [factResults, setFactResults] = useState<{ statement: string; score: number; citations: string[] }[]>([]);
+  const [perplexityKey, setPerplexityKey] = useState<string>(() => (typeof window !== "undefined" ? localStorage.getItem("perplexity_api_key") || "" : ""));
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Cursor spotlight signature moment
@@ -224,10 +228,11 @@ const Index = () => {
           <Separator />
           <CardContent className="p-4">
             <Tabs defaultValue="insights" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="insights">Insights</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
                 <TabsTrigger value="actions">Actions</TabsTrigger>
+                <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
               </TabsList>
 
               <TabsContent value="insights" className="mt-4 space-y-3">
@@ -274,6 +279,84 @@ const Index = () => {
                     <li>Prepare sprint plan focusing on onboarding friction.</li>
                   </ul>
                 )}
+              </TabsContent>
+
+              <TabsContent value="factcheck" className="mt-4 space-y-3">
+                {!selectedText ? (
+                  <p className="text-sm text-muted-foreground">
+                    Select transcript text, then click Fact Check to evaluate statements.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" onClick={factCheck} disabled={factChecking}>
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        {factChecking ? "Checking..." : "Fact Check"}
+                      </Button>
+
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="password"
+                          value={perplexityKey}
+                          onChange={(e) => setPerplexityKey(e.target.value)}
+                          placeholder="Perplexity API key"
+                          className="w-56"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (typeof window !== "undefined") {
+                              localStorage.setItem("perplexity_api_key", perplexityKey);
+                            }
+                            toast({ title: "API key saved", description: "Stored locally in your browser." });
+                          }}
+                        >
+                          Save Key
+                        </Button>
+                      </div>
+                    </div>
+
+                    {factResults.length > 0 ? (
+                      <ul className="space-y-3">
+                        {factResults.map((r, idx) => (
+                          <li key={idx} className="rounded-md border p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm leading-6 text-foreground/90">{r.statement}</p>
+                              <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${scoreColor(r.score)}`}>
+                                {r.score}%
+                              </span>
+                            </div>
+                            {r.citations && r.citations.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {r.citations.map((c, i) => (
+                                  <a
+                                    key={i}
+                                    href={c}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs underline underline-offset-4 text-muted-foreground hover:text-foreground"
+                                  >
+                                    {c}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : factChecking ? (
+                      <div className="space-y-3">
+                        <div className="h-4 w-1/2 rounded bg-muted animate-pulse" />
+                        <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+                        <div className="h-4 w-1/3 rounded bg-muted animate-pulse" />
+                      </div>
+                    ) : null}
+                  </>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Tip: For production, move the API call to a Supabase Edge Function and store the key in Secrets.
+                </p>
               </TabsContent>
             </Tabs>
           </CardContent>
