@@ -294,7 +294,7 @@ const Index = () => {
       <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden min-h-0">
         {/* Transcript */}
         <Card className="md:col-span-7 h-full flex flex-col min-h-0">
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex-row items-center justify-between min-h-[72px]">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-lg">Transcript</CardTitle>
@@ -319,19 +319,21 @@ const Index = () => {
                 </TooltipTrigger>
                 <TooltipContent>Toggle live session</TooltipContent>
               </Tooltip>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{segments.length} segments</Badge>
-                {selectedSegments.length > 0 && (
-                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-                    {selectedSegments.length} selected
-                  </Badge>
-                )}
-              </div>
             </div>
           </CardHeader>
           <Separator />
           <CardContent className="p-0 flex-1 overflow-hidden min-h-0">
             <ScrollArea className="h-full min-h-0">
+              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+                <div className="px-4 py-2 flex items-center justify-end gap-2">
+                  <Badge variant="outline">{segments.length} segments</Badge>
+                  {selectedSegments.length > 0 && (
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
+                      {selectedSegments.length} selected
+                    </Badge>
+                  )}
+                </div>
+              </div>
               <div className="px-4 pt-4 pb-0 space-y-3">
                 {segments.map((s) => (
                   <div
