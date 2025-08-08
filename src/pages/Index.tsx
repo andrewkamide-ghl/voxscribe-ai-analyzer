@@ -60,6 +60,8 @@ const Index = () => {
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const prevLenRef = useRef<number>(initialSegments.length);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  const overlayBtnRef = useRef<HTMLButtonElement | null>(null);
   // Positioning for the unread overlay button (just under the sticky header)
   const [overlayTop, setOverlayTop] = useState<number>(0);
   useEffect(() => {
@@ -79,6 +81,25 @@ const Index = () => {
       if (ro) ro.disconnect();
     };
   }, []);
+
+  // Observe top sentinel visibility to compute isAtTop accurately, accounting for sticky header height
+  useEffect(() => {
+    const root = transcriptRef.current;
+    const target = topSentinelRef.current;
+    if (!root || !target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsAtTop(entry.isIntersecting);
+      },
+      {
+        root,
+        rootMargin: `-${overlayTop}px 0px 0px 0px`,
+        threshold: 0,
+      }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [overlayTop]);
 
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
@@ -141,19 +162,19 @@ const Index = () => {
   const handleTranscriptScroll = () => {
     const el = transcriptRef.current;
     if (!el) return;
-    const atTopNow = el.scrollTop <= 8;
-    setIsAtTop(atTopNow);
-if (atTopNow && unreadIds.size > 0) {
-  setUnreadIds(new Set());
-  setFirstUnreadId(null);
-}
+    const atTopNow = el.scrollTop <= 1;
+    if (atTopNow && unreadIds.size > 0) {
+      setUnreadIds(new Set());
+      setFirstUnreadId(null);
+    }
   };
 
 const scrollToOldestUnread = () => {
   const el = transcriptRef.current;
   if (!el) return;
-  const overlayButtonHeight = 32; // px (h-8)
-  const extraMargin = 12; // safety margin
+  const overlayH = overlayBtnRef.current?.offsetHeight ?? 32;
+  const gap = 8;
+  const safety = 16;
   if (firstUnreadId) {
     const target = itemRefs.current.get(firstUnreadId);
     if (target) {
@@ -164,15 +185,30 @@ const scrollToOldestUnread = () => {
         el.scrollTop +
         (targetRect.top - elRect.top) -
         headerH -
-        8 - // gap under header
-        overlayButtonHeight -
-        extraMargin;
+        gap -
+        overlayH -
+        safety;
       el.scrollTo({ top: Math.max(0, desiredTop), behavior: "smooth" });
-      // Keep the overlay visible during scroll to avoid mid-animation offset changes
+
+      let attempts = 0;
+      const correct = () => {
+        if (!el || !target) return;
+        const elR = el.getBoundingClientRect();
+        const tR = target.getBoundingClientRect();
+        const minTop = elR.top + headerH + gap + overlayH + 4;
+        const delta = tR.top - minTop;
+        if (delta < -1) {
+          el.scrollBy({ top: delta, behavior: "auto" });
+        }
+        attempts++;
+        if (attempts < 8) requestAnimationFrame(correct);
+      };
+      requestAnimationFrame(correct);
+
       setTimeout(() => {
         setUnreadIds(new Set());
         setFirstUnreadId(null);
-      }, 400);
+      }, 450);
       return;
     }
   }
@@ -180,7 +216,7 @@ const scrollToOldestUnread = () => {
   setTimeout(() => {
     setUnreadIds(new Set());
     setFirstUnreadId(null);
-  }, 400);
+  }, 450);
 };
 
   useEffect(() => {
@@ -425,6 +461,7 @@ if (!firstUnreadId) {
               ref={transcriptRef}
               onScroll={handleTranscriptScroll}
               className="h-full min-h-0 overflow-auto relative"
+              style={{ scrollbarGutter: "stable both-edges" }}
             >
               <div ref={stickyHeaderRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
                 <div className="px-4 py-2 flex items-center justify-end gap-2">
@@ -438,13 +475,15 @@ if (!firstUnreadId) {
                   )}
                 </div>
               </div>
+              <div ref={topSentinelRef} aria-hidden="true" className="h-px w-px" />
 
 {unreadIds.size > 0 && !isAtTop && (
   <div
-    className="absolute left-0 right-0 z-30 flex justify-center px-4 pointer-events-none"
+    className="absolute left-4 right-4 z-30 flex justify-center pointer-events-none"
     style={{ top: overlayTop }}
   >
     <Button
+      ref={overlayBtnRef}
       variant="default"
       onClick={scrollToOldestUnread}
       className="h-8 px-3 py-0 rounded-md pointer-events-auto"
