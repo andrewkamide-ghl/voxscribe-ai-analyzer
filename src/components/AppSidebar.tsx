@@ -70,7 +70,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                <SidebarMenuItem key={item.title} className="flex justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex">
                   <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined} className="group-data-[collapsible=icon]:!size-10">
                     <NavLink to={item.url} end className={linkClass}>
                       <item.icon className={collapsed ? "h-5 w-5" : "mr-2 h-4 w-4"} />
