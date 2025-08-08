@@ -303,16 +303,8 @@ const Index = () => {
                   {connected ? "Recording" : "Disconnected"}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{segments.length} segments</Badge>
-                {selectedSegments.length > 0 && (
-                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-                    {selectedSegments.length} selected
-                  </Badge>
-                )}
-              </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   {connected ? (
@@ -327,6 +319,14 @@ const Index = () => {
                 </TooltipTrigger>
                 <TooltipContent>Toggle live session</TooltipContent>
               </Tooltip>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{segments.length} segments</Badge>
+                {selectedSegments.length > 0 && (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
+                    {selectedSegments.length} selected
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
           <Separator />
