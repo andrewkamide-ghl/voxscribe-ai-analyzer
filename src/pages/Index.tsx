@@ -399,156 +399,157 @@ const Index = () => {
                 <TabsTrigger value="factcheck">Fact Check</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="insights" className="mt-4 space-y-3">
-                {analyzing ? (
-                  <div className="space-y-3">
-                    <div className="h-4 w-1/2 rounded bg-muted animate-pulse" />
-                    <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
-                    <div className="h-4 w-1/3 rounded bg-muted animate-pulse" />
-                  </div>
-                ) : runs.length > 0 ? (
-                  <div className="space-y-3">
-                    {runs.map((run) => (
-                      <div key={run.id} className="rounded-md border p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="text-xs text-muted-foreground">{formatTimestamp(run.timestamp)}</div>
-                          <div className="flex items-center gap-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">Save</Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
-                              <Download className="mr-2 h-4 w-4" /> Download
-                            </Button>
+              <ScrollArea className="h-[calc(100vh-220px)] mt-4 pr-2">
+                <TabsContent value="insights" className="space-y-3">
+                  {analyzing ? (
+                    <div className="space-y-3">
+                      <div className="h-4 w-1/2 rounded bg-muted animate-pulse" />
+                      <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+                      <div className="h-4 w-1/3 rounded bg-muted animate-pulse" />
+                    </div>
+                  ) : runs.length > 0 ? (
+                    <div className="space-y-3">
+                      {runs.map((run) => (
+                        <div key={run.id} className="rounded-md border p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <div className="text-xs text-muted-foreground">{formatTimestamp(run.timestamp)}</div>
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">Save</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="z-50">
+                                  <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
+                                <Download className="mr-2 h-4 w-4" /> Download
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-foreground/90">
-                          {run.insights.map((i, idx) => (
-                            <li key={idx}>{i}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Click Analyze to generate insights.</p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="summary" className="mt-4">
-                {analyzing ? (
-                  <div className="space-y-3">
-                    <div className="h-4 w-5/6 rounded bg-muted animate-pulse" />
-                    <div className="h-4 w-4/6 rounded bg-muted animate-pulse" />
-                  </div>
-                ) : runs.length > 0 ? (
-                  <div className="space-y-3">
-                    {runs.map((run) => (
-                      <div key={run.id} className="rounded-md border p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="text-xs text-muted-foreground">{formatTimestamp(run.timestamp)}</div>
-                          <div className="flex items-center gap-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">Save</Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
-                              <Download className="mr-2 h-4 w-4" /> Download
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm leading-6 text-foreground/90">{run.summary}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm leading-6 text-foreground/90">
-                    Click Analyze to generate a concise meeting summary.
-                  </p>
-                )}
-              </TabsContent>
-
-
-              <TabsContent value="factcheck" className="mt-4 space-y-3">
-                {runs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Click Analyze to generate fact-checked results.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {runs.map((run) => (
-                      <div key={run.id} className="rounded-md border p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <ShieldCheck className="h-3 w-3" /> {formatTimestamp(run.timestamp)}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">Save</Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
-                              <Download className="mr-2 h-4 w-4" /> Download
-                            </Button>
-                          </div>
-                        </div>
-                        {run.facts.length > 0 ? (
-                          <ul className="space-y-3">
-                            {run.facts.map((r, idx) => (
-                              <li key={idx} className="rounded-md border p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <p className="text-sm leading-6 text-foreground/90">{r.statement}</p>
-                                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${scoreColor(r.score)}`}>
-                                    {r.score}%
-                                  </span>
-                                </div>
-                                {r.citations && r.citations.length > 0 && (
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {r.citations.map((c, i) => (
-                                      <a
-                                        key={i}
-                                        href={c}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs underline underline-offset-4 text-muted-foreground hover:text-foreground"
-                                      >
-                                        {c}
-                                      </a>
-                                    ))}
-                                  </div>
-                                )}
-                              </li>
+                          <ul className="list-disc pl-5 space-y-2 text-sm text-foreground/90">
+                            {run.insights.map((i, idx) => (
+                              <li key={idx}>{i}</li>
                             ))}
                           </ul>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No fact check statements detected.</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Fact checking is managed in user settings. Results generate when you click Analyze.
-                </p>
-              </TabsContent>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Click Analyze to generate insights.</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="summary">
+                  {analyzing ? (
+                    <div className="space-y-3">
+                      <div className="h-4 w-5/6 rounded bg-muted animate-pulse" />
+                      <div className="h-4 w-4/6 rounded bg-muted animate-pulse" />
+                    </div>
+                  ) : runs.length > 0 ? (
+                    <div className="space-y-3">
+                      {runs.map((run) => (
+                        <div key={run.id} className="rounded-md border p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <div className="text-xs text-muted-foreground">{formatTimestamp(run.timestamp)}</div>
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">Save</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="z-50">
+                                  <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
+                                <Download className="mr-2 h-4 w-4" /> Download
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-sm leading-6 text-foreground/90">{run.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-6 text-foreground/90">
+                      Click Analyze to generate a concise meeting summary.
+                    </p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="factcheck" className="space-y-3">
+                  {runs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Click Analyze to generate fact-checked results.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {runs.map((run) => (
+                        <div key={run.id} className="rounded-md border p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              <ShieldCheck className="h-3 w-3" /> {formatTimestamp(run.timestamp)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm">Save</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="z-50">
+                                  <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
+                                <Download className="mr-2 h-4 w-4" /> Download
+                              </Button>
+                            </div>
+                          </div>
+                          {run.facts.length > 0 ? (
+                            <ul className="space-y-3">
+                              {run.facts.map((r, idx) => (
+                                <li key={idx} className="rounded-md border p-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm leading-6 text-foreground/90">{r.statement}</p>
+                                    <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${scoreColor(r.score)}`}>
+                                      {r.score}%
+                                    </span>
+                                  </div>
+                                  {r.citations && r.citations.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {r.citations.map((c, i) => (
+                                        <a
+                                          key={i}
+                                          href={c}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs underline underline-offset-4 text-muted-foreground hover:text-foreground"
+                                        >
+                                          {c}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No fact check statements detected.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Fact checking is managed in user settings. Results generate when you click Analyze.
+                  </p>
+                </TabsContent>
+              </ScrollArea>
             </Tabs>
           </CardContent>
         </Card>
