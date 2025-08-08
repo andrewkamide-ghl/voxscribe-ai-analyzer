@@ -289,7 +289,6 @@ const Index = () => {
         <link rel="canonical" href={typeof window !== "undefined" ? window.location.href : "https://localhost:8080/"} />
       </Helmet>
 
-      {/* Main */}
       <main className="container mx-auto px-4 pt-6 pb-6 grid gap-3 md:grid-cols-12 flex-1 overflow-hidden min-h-0">
         {/* Transcript */}
         <Card className="md:col-span-7 h-full flex flex-col min-h-0">
@@ -372,7 +371,7 @@ const Index = () => {
 
         {/* AI Analysis */}
         <Card className="md:col-span-5 h-full flex flex-col min-h-0">
-          <CardHeader className="flex-row items-center justify-between min-h-[72px]">
+          <CardHeader className="flex-row items-center justify-between min-h-[72px] py-4">
             <CardTitle className="text-lg">AI Assistant</CardTitle>
             <Button size="sm" onClick={analyzeSelection} disabled={selectedSegments.length === 0}>
               <Sparkles className="mr-2 h-4 w-4" /> Analyze
