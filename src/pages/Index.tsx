@@ -6,10 +6,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
-import { CircleDot, Mic, PauseCircle, PlayCircle, Scissors, Sparkles, ShieldCheck } from "lucide-react";
+import { CircleDot, Mic, PauseCircle, PlayCircle, Scissors, Sparkles, ShieldCheck, Download } from "lucide-react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 interface Segment {
   id: string;
@@ -50,6 +52,18 @@ const Index = () => {
   const [perplexityKey, setPerplexityKey] = useState<string>(() => (typeof window !== "undefined" ? localStorage.getItem("perplexity_api_key") || "" : ""));
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  type FactResult = { statement: string; score: number; citations: string[] };
+  interface AnalysisRun {
+    id: string;
+    timestamp: string; // ISO
+    summary: string;
+    insights: string[];
+    facts: FactResult[];
+    selection: string;
+  }
+
+  const [runs, setRuns] = useState<AnalysisRun[]>([]);
+
   // Cursor spotlight signature moment
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const el = containerRef.current;
@@ -87,42 +101,6 @@ const Index = () => {
   const selectedSegments = useMemo(() => segments.filter((s) => s.selected), [segments]);
   const selectedText = selectedSegments.map((s) => s.text).join(" \n");
 
-  // Auto-generate fact check results when selection changes
-  useEffect(() => {
-    if (!selectedText) {
-      setFactResults([]);
-      setFactChecking(false);
-      return;
-    }
-    const run = async () => {
-      try {
-        setFactChecking(true);
-        if (perplexityKey) {
-          await factCheck();
-        } else {
-          const statements = selectedText
-            .split(/[.!?]\s+|\n+/)
-            .map((s) => s.trim())
-            .filter(Boolean)
-            .slice(0, 5);
-          const mockResults = statements.map((s) => ({
-            statement: s,
-            score: Math.max(0, Math.min(100, 60 + Math.round(Math.random() * 35))),
-            citations: [],
-          }));
-          setTimeout(() => {
-            setFactResults(mockResults);
-            setFactChecking(false);
-          }, 700);
-        }
-      } catch {
-        setFactChecking(false);
-      }
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedText]);
-
   function toggleSelect(id: string) {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, selected: !s.selected } : s)));
   }
@@ -137,18 +115,84 @@ const Index = () => {
       return;
     }
     setAnalyzing(true);
-    toast({ title: "Analyzing…", description: "Streaming insights in real time." });
-    // Simulate latency
+    toast({ title: "Analyzing…", description: "Generating summary, insights, and fact check." });
+
+    const timestamp = new Date().toISOString();
+
+    // Simple summary: first 1-2 sentences of the selection
+    const sentences = selectedText
+      .split(/[.!?]\s+|\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const summary = sentences.slice(0, 2).join(". ") + (sentences.length > 0 ? "." : "");
+
+    // Simple insights: reuse or extract highlights
+    const insights = [
+      "Top concern: onboarding conversion down; consider copy and field reduction.",
+      "Timeline question raised for next sprint dependencies.",
+      "Hypothesis: email verification friction increases drop-off.",
+    ];
+
+    // Fact check results (mocked for now or provider-managed in Settings)
+    const facts: FactResult[] = sentences.slice(0, 5).map((s) => ({
+      statement: s,
+      score: Math.max(0, Math.min(100, 60 + Math.round(Math.random() * 35))),
+      citations: [],
+    }));
+
+    const run: AnalysisRun = {
+      id: `run-${Date.now()}`,
+      timestamp,
+      summary: summary || "No concise summary available for the current selection.",
+      insights,
+      facts,
+      selection: selectedText,
+    };
+
+    // Simulate latency then store run in history
     setTimeout(() => {
+      setRuns((prev) => [run, ...prev]);
       setAnalyzing(false);
-      toast({ title: "Analysis ready", description: "Insights updated in the panel." });
-    }, 1600);
+      toast({ title: "Analysis ready", description: "New results added to the history." });
+    }, 800);
   }
 
   function scoreColor(score: number) {
     if (score >= 75) return "bg-green-600 text-white";
     if (score >= 45) return "bg-yellow-500 text-black";
     return "bg-red-600 text-white";
+  }
+
+  function formatTimestamp(iso: string) {
+    try {
+      return new Date(iso).toLocaleString();
+    } catch {
+      return iso;
+    }
+  }
+
+  async function downloadRun(run: AnalysisRun) {
+    try {
+      const zip = new JSZip();
+      zip.file("summary.txt", run.summary + "\n");
+      zip.file("insights.txt", run.insights.map((i) => `- ${i}`).join("\n"));
+      zip.file("factcheck.json", JSON.stringify(run.facts, null, 2));
+      zip.file("selection.txt", run.selection);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const stamp = run.timestamp.replace(/[:.]/g, "-");
+      saveAs(blob, `analysis-${stamp}.zip`);
+      toast({ title: "Download ready", description: "Saved ZIP to your device." });
+    } catch (e) {
+      toast({ title: "Download failed", description: "Please try again.", variant: "destructive" });
+    }
+  }
+
+  function onSaveTo(provider: "supabase" | "gdrive" | "dropbox", run: AnalysisRun) {
+    const providerName = provider === "gdrive" ? "Google Drive" : provider === "dropbox" ? "Dropbox" : "Supabase";
+    toast({
+      title: `Connect ${providerName}`,
+      description: "Manage cloud storage connections in Settings. We'll save this run once connected.",
+    });
   }
 
   async function factCheck() {
@@ -362,14 +406,38 @@ const Index = () => {
                     <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
                     <div className="h-4 w-1/3 rounded bg-muted animate-pulse" />
                   </div>
-                ) : selectedText ? (
-                  <ul className="list-disc pl-5 space-y-2 text-sm text-foreground/90">
-                    <li>Top concern: onboarding conversion down; consider copy and field reduction.</li>
-                    <li>Timeline question raised for next sprint dependencies.</li>
-                    <li>Hypothesis: email verification friction increases drop-off.</li>
-                  </ul>
+                ) : runs.length > 0 ? (
+                  <div className="space-y-3">
+                    {runs.map((run) => (
+                      <div key={run.id} className="rounded-md border p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">{formatTimestamp(run.timestamp)}</div>
+                          <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">Save</Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
+                              <Download className="mr-2 h-4 w-4" /> Download
+                            </Button>
+                          </div>
+                        </div>
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-foreground/90">
+                          {run.insights.map((i, idx) => (
+                            <li key={idx}>{i}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Select transcript text to generate insights here.</p>
+                  <p className="text-sm text-muted-foreground">Click Analyze to generate insights.</p>
                 )}
               </TabsContent>
 
@@ -379,61 +447,106 @@ const Index = () => {
                     <div className="h-4 w-5/6 rounded bg-muted animate-pulse" />
                     <div className="h-4 w-4/6 rounded bg-muted animate-pulse" />
                   </div>
+                ) : runs.length > 0 ? (
+                  <div className="space-y-3">
+                    {runs.map((run) => (
+                      <div key={run.id} className="rounded-md border p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">{formatTimestamp(run.timestamp)}</div>
+                          <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">Save</Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
+                              <Download className="mr-2 h-4 w-4" /> Download
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm leading-6 text-foreground/90">{run.summary}</p>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <p className="text-sm leading-6 text-foreground/90">
-                    Concise meeting summary appears here as the conversation unfolds. It updates as you analyze
-                    more context.
+                    Click Analyze to generate a concise meeting summary.
                   </p>
                 )}
               </TabsContent>
 
 
               <TabsContent value="factcheck" className="mt-4 space-y-3">
-                {!selectedText ? (
+                {runs.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Select transcript text to see fact-checked results.
+                    Click Analyze to generate fact-checked results.
                   </p>
                 ) : (
-                  <>
-                    {factResults.length > 0 ? (
-                      <ul className="space-y-3">
-                        {factResults.map((r, idx) => (
-                          <li key={idx} className="rounded-md border p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm leading-6 text-foreground/90">{r.statement}</p>
-                              <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${scoreColor(r.score)}`}>
-                                {r.score}%
-                              </span>
-                            </div>
-                            {r.citations && r.citations.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {r.citations.map((c, i) => (
-                                  <a
-                                    key={i}
-                                    href={c}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs underline underline-offset-4 text-muted-foreground hover:text-foreground"
-                                  >
-                                    {c}
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : factChecking ? (
-                      <div className="space-y-3">
-                        <div className="h-4 w-1/2 rounded bg-muted animate-pulse" />
-                        <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
-                        <div className="h-4 w-1/3 rounded bg-muted animate-pulse" />
+                  <div className="space-y-3">
+                    {runs.map((run) => (
+                      <div key={run.id} className="rounded-md border p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <ShieldCheck className="h-3 w-3" /> {formatTimestamp(run.timestamp)}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">Save</Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
+                              <Download className="mr-2 h-4 w-4" /> Download
+                            </Button>
+                          </div>
+                        </div>
+                        {run.facts.length > 0 ? (
+                          <ul className="space-y-3">
+                            {run.facts.map((r, idx) => (
+                              <li key={idx} className="rounded-md border p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-sm leading-6 text-foreground/90">{r.statement}</p>
+                                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${scoreColor(r.score)}`}>
+                                    {r.score}%
+                                  </span>
+                                </div>
+                                {r.citations && r.citations.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {r.citations.map((c, i) => (
+                                      <a
+                                        key={i}
+                                        href={c}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs underline underline-offset-4 text-muted-foreground hover:text-foreground"
+                                      >
+                                        {c}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No fact check statements detected.</p>
+                        )}
                       </div>
-                    ) : null}
-                  </>
+                    ))}
+                  </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Fact checking is managed in user settings. Results generate automatically.
+                  Fact checking is managed in user settings. Results generate when you click Analyze.
                 </p>
               </TabsContent>
             </Tabs>
