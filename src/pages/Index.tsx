@@ -90,10 +90,10 @@ const Index = () => {
   }, []);
 
 
-  useEffect(() => {
-    const root = transcriptRef.current;
+  const checkOldestUnreadVisible = () => {
+    const el = transcriptRef.current;
     const id = firstUnreadId;
-    if (!root || !id) {
+    if (!el || !id) {
       setIsOldestUnreadVisible(true);
       return;
     }
@@ -102,28 +102,27 @@ const Index = () => {
       setIsOldestUnreadVisible(true);
       return;
     }
+    const elRect = el.getBoundingClientRect();
     const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
     const overlayH = overlayBtnRef.current?.offsetHeight ?? 32;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsOldestUnreadVisible(entry.isIntersecting);
-      },
-      {
-        root,
-        rootMargin: `-${headerH + overlayH + 8}px 0px 0px 0px`,
-        threshold: 0,
-      }
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [firstUnreadId, overlayTop, segments.length]);
+    const topCutoff = elRect.top + headerH + 8 + overlayH;
+    const tRect = target.getBoundingClientRect();
+    const isVisible = tRect.top >= topCutoff && tRect.top <= elRect.bottom;
+    setIsOldestUnreadVisible(isVisible);
+  };
 
-  // When first unread is set and we're not at top, optimistically show the overlay
   useEffect(() => {
     if (firstUnreadId && !isAtTop) {
       setIsOldestUnreadVisible(false);
+    } else {
+      checkOldestUnreadVisible();
     }
-  }, [firstUnreadId, isAtTop]);
+    const onResize = () => checkOldestUnreadVisible();
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+    };
+  }, [firstUnreadId, overlayTop, segments.length, isAtTop]);
 
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
@@ -189,19 +188,8 @@ const Index = () => {
     const atTopNow = el.scrollTop <= 1;
     setIsAtTop(atTopNow);
 
-    // Defensive visibility check for the oldest unread segment during scroll
-    if (firstUnreadId) {
-      const target = itemRefs.current.get(firstUnreadId);
-      if (target) {
-        const elRect = el.getBoundingClientRect();
-        const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
-        const overlayH = overlayBtnRef.current?.offsetHeight ?? 32;
-        const topCutoff = elRect.top + headerH + 8 + overlayH;
-        const tRect = target.getBoundingClientRect();
-        const isVisible = tRect.top >= topCutoff && tRect.top <= elRect.bottom;
-        setIsOldestUnreadVisible(isVisible);
-      }
-    }
+    // Visibility check during scroll
+    checkOldestUnreadVisible();
 
     if (atTopNow && unreadIds.size > 0) {
       setUnreadIds(new Set());
