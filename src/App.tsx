@@ -11,7 +11,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Research from "./pages/Research";
 import Settings from "./pages/Settings";
-import OpenAICallback from "./pages/OpenAICallback";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +32,6 @@ const App = () => (
                   <Route path="/contacts" element={<Contacts />} />
                   <Route path="/research" element={<Research />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="/auth/openai/callback" element={<OpenAICallback />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

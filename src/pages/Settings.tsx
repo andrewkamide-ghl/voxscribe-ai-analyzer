@@ -5,27 +5,22 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import AIModelSelector from "@/components/AIModelSelector";
-import { generatePKCE } from "@/utils/oauth";
-import { getOpenAIProxyBase, setOpenAIProxyBase, getOpenAIClientId, setOpenAIClientId, isOpenAIConnected, clearOpenAIAuth, setEphemeral, getRedirectUri } from "@/store/openai-oauth";
+import { clearOpenAIKey, getOpenAIKey, setOpenAIKey } from "@/store/ai";
 
 const Settings = () => {
   const { toast } = useToast();
-  const [proxyBase, setProxyBase] = useState<string>(() => getOpenAIProxyBase() || "");
-  const [clientId, setClientId] = useState<string>(() => getOpenAIClientId() || "");
-  const connected = isOpenAIConnected();
+  const [openaiKey, setKey] = useState<string>(() => getOpenAIKey() || "");
+  const connected = Boolean(getOpenAIKey());
 
-  const saveProxyConfig = () => {
-    if (!proxyBase || !clientId) {
-      toast({ title: "Missing details", description: "Enter Proxy Base URL and Client ID." });
-      return;
-    }
-    setOpenAIProxyBase(proxyBase.trim());
-    setOpenAIClientId(clientId.trim());
-    toast({ title: "Saved", description: "Proxy settings saved to this browser." });
+  const saveOpenAI = () => {
+    if (!openaiKey) return;
+    setOpenAIKey(openaiKey);
+    toast({ title: "ChatGPT connected", description: "OpenAI key saved to this browser." });
   };
 
   const disconnect = () => {
-    clearOpenAIAuth();
+    clearOpenAIKey();
+    setKey("");
     toast({ title: "Disconnected", description: "ChatGPT connection removed from this browser." });
   };
 
@@ -39,49 +34,29 @@ const Settings = () => {
 
       <header className="mb-4">
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Connect ChatGPT via OAuth and choose your default AI models.</p>
+        <p className="text-sm text-muted-foreground">Connect ChatGPT and choose your default AI models.</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="p-4 space-y-4">
           <h2 className="text-lg font-semibold">Connect ChatGPT (OpenAI)</h2>
-          <p className="text-sm text-muted-foreground">Connect via OAuth through your proxy (no API key in browser).</p>
+          <p className="text-sm text-muted-foreground">Use OAuth or an API key. For now, add an API key to connect.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="md:col-span-2 space-y-2">
-              <label htmlFor="proxy" className="text-sm font-medium">Proxy Base URL</label>
-              <Input id="proxy" value={proxyBase} onChange={(e) => setProxyBase(e.target.value)} placeholder="https://your-proxy.example.com" />
+              <label htmlFor="openai" className="text-sm font-medium">OpenAI API Key</label>
+              <Input id="openai" value={openaiKey} onChange={(e) => setKey(e.target.value)} placeholder="sk-..." />
             </div>
-            <div className="md:col-span-1 space-y-2">
-              <label htmlFor="clientId" className="text-sm font-medium">Client ID</label>
-              <Input id="clientId" value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="app_client_id" />
-            </div>
-            <div className="md:col-span-3 flex items-end gap-2">
-              <Button type="button" onClick={saveProxyConfig}>Save</Button>
-              <Button type="button" variant="secondary" onClick={async () => {
-                if (!proxyBase || !clientId) {
-                  toast({ title: "Missing details", description: "Save Proxy Base URL and Client ID first." });
-                  return;
-                }
-                const { verifier, challenge } = await generatePKCE();
-                const state = Math.random().toString(36).slice(2);
-                setEphemeral({ codeVerifier: verifier, state });
-                const redirectUri = getRedirectUri();
-                const authUrl = new URL("/oauth/authorize", proxyBase.replace(/\/$/, ""));
-                authUrl.searchParams.set("response_type", "code");
-                authUrl.searchParams.set("client_id", clientId);
-                authUrl.searchParams.set("redirect_uri", redirectUri);
-                authUrl.searchParams.set("code_challenge_method", "S256");
-                authUrl.searchParams.set("code_challenge", challenge);
-                authUrl.searchParams.set("state", state);
-                authUrl.searchParams.set("scope", "openid offline_access");
-                window.location.href = authUrl.toString();
-              }}>Connect with ChatGPT</Button>
-              {connected && (
-                <Button variant="destructive" type="button" onClick={disconnect}>Disconnect</Button>
-              )}
+            <div className="flex items-end gap-2">
+              <Button type="button" className="w-full" onClick={saveOpenAI}>Save</Button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Your proxy should implement OAuth 2.0 with PKCE and forward to OpenAI.</p>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" type="button" disabled>Connect with OAuth (coming soon)</Button>
+            {connected && (
+              <Button variant="destructive" type="button" onClick={disconnect}>Disconnect</Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Tip: For production, store secrets in Supabase and call providers from an Edge Function.</p>
         </Card>
 
         <Card className="p-4 space-y-4">
