@@ -58,10 +58,10 @@ const Index = () => {
   const itemRefs = useRef(new Map<string, HTMLDivElement>());
   const [isAtTop, setIsAtTop] = useState(true);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
-  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  
   const prevLenRef = useRef<number>(initialSegments.length);
   
-  const overlayBtnRef = useRef<HTMLButtonElement | null>(null);
+  
   // Positioning for the unread overlay button (just under the sticky header)
   const [overlayTop, setOverlayTop] = useState<number>(0);
   useEffect(() => {
@@ -82,7 +82,7 @@ const Index = () => {
     };
   }, []);
 
-  const [isOldestUnreadVisible, setIsOldestUnreadVisible] = useState(true);
+  
 
   useEffect(() => {
     const el = transcriptRef.current;
@@ -90,39 +90,12 @@ const Index = () => {
   }, []);
 
 
-  const checkOldestUnreadVisible = () => {
-    const el = transcriptRef.current;
-    const id = firstUnreadId;
-    if (!el || !id) {
-      setIsOldestUnreadVisible(true);
-      return;
-    }
-    const target = itemRefs.current.get(id);
-    if (!target) {
-      setIsOldestUnreadVisible(true);
-      return;
-    }
-    const elRect = el.getBoundingClientRect();
-    const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
-    const overlayH = overlayBtnRef.current?.offsetHeight ?? 32;
-    const topCutoff = elRect.top + headerH + 8 + overlayH;
+  const isElementVisibleInContainer = (target: HTMLElement, container: HTMLElement, headerH: number) => {
+    const cRect = container.getBoundingClientRect();
     const tRect = target.getBoundingClientRect();
-    const isVisible = tRect.top >= topCutoff && tRect.top <= elRect.bottom;
-    setIsOldestUnreadVisible(isVisible);
+    const topCutoff = cRect.top + headerH + 8;
+    return tRect.top >= topCutoff && tRect.top <= cRect.bottom;
   };
-
-  useEffect(() => {
-    if (firstUnreadId && !isAtTop) {
-      setIsOldestUnreadVisible(false);
-    } else {
-      checkOldestUnreadVisible();
-    }
-    const onResize = () => checkOldestUnreadVisible();
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-    };
-  }, [firstUnreadId, overlayTop, segments.length, isAtTop]);
 
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
@@ -188,65 +161,29 @@ const Index = () => {
     const atTopNow = el.scrollTop <= 1;
     setIsAtTop(atTopNow);
 
-    // Visibility check during scroll
-    checkOldestUnreadVisible();
+    const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
+    if (unreadIds.size > 0) {
+      const next = new Set(unreadIds);
+      let changed = false;
+      next.forEach((id) => {
+        const node = itemRefs.current.get(id);
+        if (node && isElementVisibleInContainer(node, el, headerH)) {
+          next.delete(id);
+          changed = true;
+        }
+      });
+      if (changed) setUnreadIds(next);
+    }
 
     if (atTopNow && unreadIds.size > 0) {
       setUnreadIds(new Set());
-      setFirstUnreadId(null);
     }
   };
-
-const scrollToOldestUnread = () => {
+const scrollToLatest = () => {
   const el = transcriptRef.current;
   if (!el) return;
-  const overlayH = overlayBtnRef.current?.offsetHeight ?? 32;
-  const gap = 8;
-  const safety = 16;
-  if (firstUnreadId) {
-    const target = itemRefs.current.get(firstUnreadId);
-    if (target) {
-      const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
-      const elRect = el.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const desiredTop =
-        el.scrollTop +
-        (targetRect.top - elRect.top) -
-        headerH -
-        gap -
-        overlayH -
-        safety;
-      el.scrollTo({ top: Math.max(0, desiredTop), behavior: "smooth" });
-
-      let attempts = 0;
-      const correct = () => {
-        if (!el || !target) return;
-        const elR = el.getBoundingClientRect();
-        const tR = target.getBoundingClientRect();
-        const minTop = elR.top + headerH + gap + overlayH + 4;
-        const delta = tR.top - minTop;
-        if (delta < -1) {
-          el.scrollBy({ top: delta, behavior: "auto" });
-        }
-        attempts++;
-        if (attempts < 8) requestAnimationFrame(correct);
-      };
-      requestAnimationFrame(correct);
-
-      setTimeout(() => {
-        setUnreadIds(new Set());
-        setFirstUnreadId(null);
-      }, 450);
-      return;
-    }
-  }
   el.scrollTo({ top: 0, behavior: "smooth" });
-  setTimeout(() => {
-    setUnreadIds(new Set());
-    setFirstUnreadId(null);
-  }, 450);
 };
-
   useEffect(() => {
     const curr = segments.length;
     const prev = prevLenRef.current;
@@ -264,14 +201,10 @@ setUnreadIds((prevSet) => {
   }
   return next;
 });
-if (!firstUnreadId) {
-  const oldestUnread = segments[prev];
-  if (oldestUnread) setFirstUnreadId(oldestUnread.id);
-}
       }
     }
     prevLenRef.current = curr;
-  }, [segments.length, isAtTop, firstUnreadId]);
+  }, [segments.length, isAtTop]);
 
   async function analyzeSelection() {
     if (selectedSegments.length === 0) {
@@ -505,18 +438,17 @@ if (!firstUnreadId) {
               </div>
               
 
-{unreadIds.size > 0 && !isOldestUnreadVisible && (
+{unreadIds.size > 0 && !isAtTop && (
   <div
     className="absolute left-4 right-4 z-30 flex justify-center pointer-events-none"
     style={{ top: overlayTop }}
   >
     <Button
-      ref={overlayBtnRef}
       variant="default"
-      onClick={scrollToOldestUnread}
+      onClick={scrollToLatest}
       className="h-8 px-3 py-0 rounded-md pointer-events-auto"
     >
-      View Unread Segment
+      Scroll to Latest
       <ArrowUp className="ml-2 h-4 w-4" aria-hidden="true" />
     </Button>
   </div>
@@ -533,9 +465,15 @@ if (!firstUnreadId) {
                       if (node) itemRefs.current.set(s.id, node);
                       else itemRefs.current.delete(s.id);
                     }}
-className={`rounded-md border p-3 transition-colors focus:outline-none hover:bg-muted/50 ${
-  s.selected ? "bg-primary/5 ring-1 ring-primary" : unreadIds.has(s.id) ? "ring-1 ring-primary/40" : ""
-}`}>
+                    className={`relative rounded-md border p-3 transition-colors focus:outline-none hover:bg-muted/50 ${
+                      s.selected ? "bg-primary/5 ring-1 ring-primary" : unreadIds.has(s.id) ? "ring-1 ring-primary/40" : ""
+                    }`}
+                  >
+                    {unreadIds.has(s.id) && (
+                      <span className="pointer-events-none absolute -top-2 left-3 z-10">
+                        <Badge className="h-5 px-2 py-0 text-[10px] rounded-full shadow-sm">New Segment</Badge>
+                      </span>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="rounded-md">{s.speaker}</Badge>
