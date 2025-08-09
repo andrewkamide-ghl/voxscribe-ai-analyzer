@@ -140,38 +140,6 @@ const Index = () => {
     if (!el) return;
     const atTopNow = el.scrollTop <= 1;
     setIsAtTop(atTopNow);
-
-    const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
-    if (unreadIds.size > 0) {
-      const timers = removeTimersRef.current;
-      unreadIds.forEach((id) => {
-        const node = itemRefs.current.get(id);
-        const visible = !!(node && isElementVisibleInContainer(node, el, headerH));
-        const existing = timers.get(id);
-
-        if (visible) {
-          if (!existing) {
-            const t = window.setTimeout(() => {
-              setUnreadIds((prev) => {
-                const next = new Set(prev);
-                next.delete(id);
-                return next;
-              });
-              setBadgeVisibleIds((prev) => {
-                const next = new Set(prev);
-                next.delete(id);
-                return next;
-              });
-              timers.delete(id);
-            }, 3000);
-            timers.set(id, t);
-          }
-        } else if (existing) {
-          clearTimeout(existing);
-          timers.delete(id);
-        }
-      });
-    }
   };
 const scrollToLatest = () => {
   const el = transcriptRef.current;
@@ -384,6 +352,63 @@ setUnreadIds((prevSet) => {
     });
   }, [unreadIds]);
 
+  // IntersectionObserver to remove unread/badge 3s after visibility
+  useEffect(() => {
+    const rootEl = transcriptRef.current;
+    if (!rootEl) return;
+    const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
+    const timers = removeTimersRef.current;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const target = entry.target as HTMLElement;
+          const id = target.getAttribute("data-seg-id");
+          if (!id) return;
+
+          const isUnread = unreadIds.has(id);
+          const existing = timers.get(id);
+
+          if (entry.isIntersecting && isUnread) {
+            if (!existing) {
+              const t = window.setTimeout(() => {
+                setUnreadIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(id);
+                  return next;
+                });
+                setBadgeVisibleIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(id);
+                  return next;
+                });
+                timers.delete(id);
+              }, 3000);
+              timers.set(id, t);
+            }
+          } else {
+            if (existing) {
+              clearTimeout(existing);
+              timers.delete(id);
+            }
+          }
+        });
+      },
+      {
+        root: rootEl,
+        rootMargin: `-${headerH + 8}px 0px 0px 0px`,
+        threshold: 0.6,
+      }
+    );
+
+    // Observe all segment nodes
+    itemRefs.current.forEach((node) => observer.observe(node));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [segments, unreadIds]);
+
   // Cleanup any pending timers on unmount
   useEffect(() => {
     return () => {
@@ -466,6 +491,7 @@ setUnreadIds((prevSet) => {
                     key={s.id}
                     role="button"
                     aria-pressed={!!s.selected}
+                    data-seg-id={s.id}
                     onClick={() => toggleSelect(s.id)}
                     ref={(node) => {
                       if (node) itemRefs.current.set(s.id, node);
