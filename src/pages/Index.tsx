@@ -60,7 +60,7 @@ const Index = () => {
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const prevLenRef = useRef<number>(initialSegments.length);
-  const topSentinelRef = useRef<HTMLDivElement | null>(null);
+  
   const overlayBtnRef = useRef<HTMLButtonElement | null>(null);
   // Positioning for the unread overlay button (just under the sticky header)
   const [overlayTop, setOverlayTop] = useState<number>(0);
@@ -82,24 +82,40 @@ const Index = () => {
     };
   }, []);
 
-  // Observe top sentinel visibility to compute isAtTop accurately, accounting for sticky header height
+  const [isOldestUnreadVisible, setIsOldestUnreadVisible] = useState(true);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) setIsAtTop(el.scrollTop <= 1);
+  }, []);
+
+
   useEffect(() => {
     const root = transcriptRef.current;
-    const target = topSentinelRef.current;
-    if (!root || !target) return;
+    const id = firstUnreadId;
+    if (!root || !id) {
+      setIsOldestUnreadVisible(true);
+      return;
+    }
+    const target = itemRefs.current.get(id);
+    if (!target) {
+      setIsOldestUnreadVisible(true);
+      return;
+    }
+    const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsAtTop(entry.isIntersecting);
+        setIsOldestUnreadVisible(entry.isIntersecting);
       },
       {
         root,
-        rootMargin: `-${overlayTop}px 0px 0px 0px`,
-        threshold: 0,
+        rootMargin: `-${headerH + 8}px 0px 0px 0px`,
+        threshold: 0.01,
       }
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [overlayTop]);
+  }, [firstUnreadId, overlayTop, segments.length]);
 
   type FactResult = { statement: string; score: number; citations: string[] };
   interface AnalysisRun {
@@ -163,6 +179,7 @@ const Index = () => {
     const el = transcriptRef.current;
     if (!el) return;
     const atTopNow = el.scrollTop <= 1;
+    setIsAtTop(atTopNow);
     if (atTopNow && unreadIds.size > 0) {
       setUnreadIds(new Set());
       setFirstUnreadId(null);
@@ -475,9 +492,9 @@ if (!firstUnreadId) {
                   )}
                 </div>
               </div>
-              <div ref={topSentinelRef} aria-hidden="true" className="h-px w-px" />
+              
 
-{unreadIds.size > 0 && !isAtTop && (
+{unreadIds.size > 0 && !isOldestUnreadVisible && (
   <div
     className="absolute left-4 right-4 z-30 flex justify-center pointer-events-none"
     style={{ top: overlayTop }}
