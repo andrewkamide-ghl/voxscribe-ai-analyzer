@@ -6,26 +6,29 @@ import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import AIModelSelector from "@/components/AIModelSelector";
 import { clearOpenAIKey, getOpenAIKey, setOpenAIKey } from "@/store/ai";
-
 const Settings = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [openaiKey, setKey] = useState<string>(() => getOpenAIKey() || "");
   const connected = Boolean(getOpenAIKey());
-
   const saveOpenAI = () => {
     if (!openaiKey) return;
     setOpenAIKey(openaiKey);
-    toast({ title: "ChatGPT connected", description: "OpenAI key saved to this browser." });
+    toast({
+      title: "ChatGPT connected",
+      description: "OpenAI key saved to this browser."
+    });
   };
-
   const disconnect = () => {
     clearOpenAIKey();
     setKey("");
-    toast({ title: "Disconnected", description: "ChatGPT connection removed from this browser." });
+    toast({
+      title: "Disconnected",
+      description: "ChatGPT connection removed from this browser."
+    });
   };
-
-  return (
-    <div className="container mx-auto px-4 py-6">
+  return <div className="container mx-auto px-4 py-6">
       <Helmet>
         <title>Settings — AI & Providers</title>
         <meta name="description" content="Manage AI providers like ChatGPT and Perplexity, and choose default models." />
@@ -44,18 +47,13 @@ const Settings = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="md:col-span-2 space-y-2">
               <label htmlFor="openai" className="text-sm font-medium">OpenAI API Key</label>
-              <Input id="openai" value={openaiKey} onChange={(e) => setKey(e.target.value)} placeholder="sk-..." />
+              <Input id="openai" value={openaiKey} onChange={e => setKey(e.target.value)} placeholder="sk-..." />
             </div>
             <div className="flex items-end gap-2">
               <Button type="button" className="w-full" onClick={saveOpenAI}>Save</Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" type="button" disabled>Connect with OAuth (coming soon)</Button>
-            {connected && (
-              <Button variant="destructive" type="button" onClick={disconnect}>Disconnect</Button>
-            )}
-          </div>
+          
           <p className="text-xs text-muted-foreground">Tip: For production, store secrets in Supabase and call providers from an Edge Function.</p>
         </Card>
 
@@ -65,8 +63,6 @@ const Settings = () => {
           <AIModelSelector />
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Settings;
