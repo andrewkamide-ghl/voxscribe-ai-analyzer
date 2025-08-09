@@ -16,6 +16,9 @@ import { saveAs } from "file-saver";
 import RightFeatureBar from "@/components/RightFeatureBar";
 import SpeakersForm from "@/components/SpeakersForm";
 import AssetsPanel from "@/components/AssetsPanel";
+import AIModelSelector from "@/components/AIModelSelector";
+import { useAIConfig } from "@/store/ai";
+import { askWithConfig } from "@/utils/AIClient";
 interface Segment {
   id: string;
   speaker: string;

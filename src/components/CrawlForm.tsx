@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { FirecrawlService } from '@/utils/FirecrawlService';
 import { researchStore } from '@/store/research';
+import AIModelSelector from '@/components/AIModelSelector';
 
 export const CrawlForm = () => {
   const { toast } = useToast();
@@ -68,8 +69,11 @@ export const CrawlForm = () => {
     toast({ title: 'Saved to Research', description: 'Crawl results saved.' });
   };
 
-  return (
+return (
     <Card className="p-4 space-y-4">
+      <div>
+        <AIModelSelector compact />
+      </div>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div className="md:col-span-2 space-y-2">

@@ -49,7 +49,7 @@ const Research = () => {
             </Card>
             <Card className="p-4">
               <h2 className="text-lg font-semibold mb-2">Ask the Web</h2>
-              <p className="text-sm text-muted-foreground mb-3">Uses Perplexity API. Keys are stored locally for now.</p>
+              <p className="text-sm text-muted-foreground mb-3">Choose model below. Keys are stored locally for now.</p>
               <AskWebForm />
             </Card>
           </div>
