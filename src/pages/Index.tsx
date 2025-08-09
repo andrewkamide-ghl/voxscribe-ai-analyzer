@@ -799,7 +799,7 @@ setUnreadIds((prevSet) => {
               </Tabs>
             </CardContent>
           </Card>
-        ) : (
+        ) : activeFeature === "speakers" ? (
           <SpeakersForm
             speakers={uniqueSpeakers}
             onRename={({ from, to }) => {
@@ -807,8 +807,10 @@ setUnreadIds((prevSet) => {
             }}
             aiRuns={runs}
           />
+        ) : (
+          <AssetsPanel />
         )}
-      </main>
+       </main>
 
       {/* Always-visible feature rail on the right */}
       <RightFeatureBar
