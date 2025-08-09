@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Contacts from "./pages/Contacts";
 import { HelmetProvider } from "react-helmet-async";
+import { I18nProvider } from "@/store/i18n";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Research from "./pages/Research";
@@ -16,31 +17,34 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SidebarProvider>
-            <header className="h-12 flex items-center border-b">
-              <SidebarTrigger className="ml-2" />
-            </header>
-            <div className="flex min-h-screen w-full">
-              <AppSidebar />
-              <main className="flex-1 min-h-0">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/contacts" element={<Contacts />} />
-                  <Route path="/research" element={<Research />} />
-                  <Route path="/settings" element={<Settings />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-            </div>
-          </SidebarProvider>
-        </BrowserRouter>
-    </QueryClientProvider>
+    <I18nProvider>
+      <QueryClientProvider client={queryClient}>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <SidebarProvider>
+              <header className="h-12 flex items-center border-b">
+                <SidebarTrigger className="ml-2" />
+              </header>
+              <div className="flex min-h-screen w-full">
+                <AppSidebar />
+                <main className="flex-1 min-h-0">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/contacts" element={<Contacts />} />
+                    <Route path="/research" element={<Research />} />
+                    <Route path="/settings" element={<Settings />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+              </div>
+            </SidebarProvider>
+          </BrowserRouter>
+      </QueryClientProvider>
+    </I18nProvider>
   </HelmetProvider>
 );
+
 
 export default App;

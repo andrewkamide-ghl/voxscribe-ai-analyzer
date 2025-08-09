@@ -32,10 +32,28 @@ export function AppSidebar() {
   const collapsed = state === "collapsed"
   const location = useLocation()
   const currentPath = location.pathname
+  const { t } = useI18n()
 
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+
+  const getItemLabel = (url: string) => {
+    switch (url) {
+      case "/":
+        return t("nav.home")
+      case "/calls":
+        return t("nav.calls")
+      case "/research":
+        return t("nav.research")
+      case "/contacts":
+        return t("nav.contacts")
+      case "/settings":
+        return t("nav.settings")
+      default:
+        return url
+    }
+  }
 
   return (
     <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
@@ -63,15 +81,15 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("nav.group")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={collapsed ? item.title : undefined} className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
+                  <SidebarMenuButton asChild tooltip={collapsed ? getItemLabel(item.url) : undefined} className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
                     <NavLink to={item.url} end className={getNavCls}>
                       <item.icon className={collapsed ? "h-5 w-5" : "mr-2 h-4 w-4"} />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span>{getItemLabel(item.url)}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -105,11 +123,11 @@ export function AppSidebar() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="w-56">
-              <DropdownMenuItem onClick={() => toast.message("Edit Profile", { description: "Profile editor coming soon." })}>
-                Edit Profile
+              <DropdownMenuItem onClick={() => toast.message(t("profile.edit"), { description: t("profile.editorComingSoon") })}>
+                {t("profile.edit")}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.success("Logged out")}>
-                <LogOut className="mr-2 h-4 w-4" /> Logout
+              <DropdownMenuItem onClick={() => toast.success(t("actions.loggedOut"))}>
+                <LogOut className="mr-2 h-4 w-4" /> {t("actions.logout")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
