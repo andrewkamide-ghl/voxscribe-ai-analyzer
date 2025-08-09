@@ -59,7 +59,7 @@ const Index = () => {
   const [isAtTop, setIsAtTop] = useState(true);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
   const [badgeVisibleIds, setBadgeVisibleIds] = useState<Set<string>>(new Set());
-  const badgeTimersRef = useRef<Map<string, number>>(new Map());
+  const removeTimersRef = useRef<Map<string, number>>(new Map());
   
   const prevLenRef = useRef<number>(initialSegments.length);
   
@@ -143,20 +143,34 @@ const Index = () => {
 
     const headerH = stickyHeaderRef.current?.offsetHeight ?? 0;
     if (unreadIds.size > 0) {
-      const next = new Set(unreadIds);
-      let changed = false;
-      next.forEach((id) => {
+      const timers = removeTimersRef.current;
+      unreadIds.forEach((id) => {
         const node = itemRefs.current.get(id);
-        if (node && isElementVisibleInContainer(node, el, headerH)) {
-          next.delete(id);
-          changed = true;
+        const visible = !!(node && isElementVisibleInContainer(node, el, headerH));
+        const existing = timers.get(id);
+
+        if (visible) {
+          if (!existing) {
+            const t = window.setTimeout(() => {
+              setUnreadIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+              setBadgeVisibleIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+              timers.delete(id);
+            }, 3000);
+            timers.set(id, t);
+          }
+        } else if (existing) {
+          clearTimeout(existing);
+          timers.delete(id);
         }
       });
-      if (changed) setUnreadIds(next);
-    }
-
-    if (atTopNow && unreadIds.size > 0) {
-      setUnreadIds(new Set());
     }
   };
 const scrollToLatest = () => {
@@ -351,47 +365,29 @@ setUnreadIds((prevSet) => {
     }
   }
 
-  // Delay showing 'New Segment' badge by 3 seconds after a segment becomes unread
+  // Show badge immediately for unread items and manage removal timers separately
   useEffect(() => {
-    const timers = badgeTimersRef.current;
-
-    // Start timers for newly unread segments that don't have a badge yet
-    unreadIds.forEach((id) => {
-      if (!badgeVisibleIds.has(id) && !timers.has(id)) {
-        const t = window.setTimeout(() => {
-          setBadgeVisibleIds((prev) => {
-            const next = new Set(prev);
-            if (unreadIds.has(id)) next.add(id); // still unread after delay
-            return next;
-          });
-          timers.delete(id);
-        }, 3000);
-        timers.set(id, t);
-      }
+    // Ensure all unread ids have a visible badge immediately
+    setBadgeVisibleIds((prev) => {
+      const next = new Set(prev);
+      unreadIds.forEach((id) => next.add(id));
+      return next;
     });
 
-    // Clear timers for segments that are no longer unread
+    // Safety: clear any timers for ids that are no longer unread
+    const timers = removeTimersRef.current;
     Array.from(timers.entries()).forEach(([id, t]) => {
       if (!unreadIds.has(id)) {
         clearTimeout(t);
         timers.delete(id);
       }
     });
-
-    // Remove badges for segments that are no longer unread
-    setBadgeVisibleIds((prev) => {
-      const next = new Set(prev);
-      prev.forEach((id) => {
-        if (!unreadIds.has(id)) next.delete(id);
-      });
-      return next;
-    });
-  }, [unreadIds, badgeVisibleIds]);
+  }, [unreadIds]);
 
   // Cleanup any pending timers on unmount
   useEffect(() => {
     return () => {
-      const timers = badgeTimersRef.current;
+      const timers = removeTimersRef.current;
       timers.forEach((t) => clearTimeout(t));
       timers.clear();
     };
