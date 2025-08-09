@@ -352,7 +352,7 @@ setUnreadIds((prevSet) => {
     });
   }, [unreadIds]);
 
-  // IntersectionObserver to remove unread/badge 3s after visibility
+  // IntersectionObserver to remove unread/badge 1s after visibility
   useEffect(() => {
     const rootEl = transcriptRef.current;
     if (!rootEl) return;
@@ -383,7 +383,7 @@ setUnreadIds((prevSet) => {
                   return next;
                 });
                 timers.delete(id);
-              }, 3000);
+              }, 1000);
               timers.set(id, t);
             }
           } else {
