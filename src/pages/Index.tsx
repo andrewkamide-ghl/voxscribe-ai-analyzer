@@ -62,26 +62,6 @@ const Index = () => {
   const prevLenRef = useRef<number>(initialSegments.length);
   
   
-  // Positioning for the unread overlay button (just under the sticky header)
-  const [overlayTop, setOverlayTop] = useState<number>(0);
-  useEffect(() => {
-    const updateTop = () => {
-      const h = stickyHeaderRef.current?.offsetHeight ?? 0;
-      setOverlayTop(h + 8); // 8px gap under the header
-    };
-    updateTop();
-    let ro: ResizeObserver | undefined;
-    if (stickyHeaderRef.current && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => updateTop());
-      ro.observe(stickyHeaderRef.current);
-    }
-    window.addEventListener("resize", updateTop);
-    return () => {
-      window.removeEventListener("resize", updateTop);
-      if (ro) ro.disconnect();
-    };
-  }, []);
-
   
 
   useEffect(() => {
@@ -438,23 +418,7 @@ setUnreadIds((prevSet) => {
               </div>
               
 
-{unreadIds.size > 0 && !isAtTop && (
-  <div
-    className="absolute left-4 right-4 z-30 flex justify-center pointer-events-none"
-    style={{ top: overlayTop }}
-  >
-    <Button
-      variant="default"
-      onClick={scrollToLatest}
-      className="h-8 px-3 py-0 rounded-md pointer-events-auto"
-    >
-      Scroll to Latest
-      <ArrowUp className="ml-2 h-4 w-4" aria-hidden="true" />
-    </Button>
-  </div>
-)}
-
-              <div className="px-4 pt-4 pb-0 space-y-3">
+              <div className="px-4 pt-4 pb-16 space-y-3">
                 {orderedSegments.map((s) => (
                   <div
                     key={s.id}
@@ -493,6 +457,21 @@ setUnreadIds((prevSet) => {
                   </div>
                 )}
               </div>
+
+              {unreadIds.size > 0 && (
+                <div className="sticky bottom-3 z-30 px-4 pointer-events-none">
+                  <div className="flex justify-end">
+                    <Button
+                      variant="default"
+                      onClick={scrollToLatest}
+                      className="pointer-events-auto h-9 rounded-full shadow-lg"
+                    >
+                      Scroll to Latest
+                      <ArrowUp className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
           </CardContent>
