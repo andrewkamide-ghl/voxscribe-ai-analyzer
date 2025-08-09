@@ -143,8 +143,8 @@ const Index = () => {
   
   // Right panel feature state: "assistant" (default) or "speakers"
   const [activeFeature, setActiveFeature] = useState<"assistant" | "speakers">("assistant");
-  
-
+  // Unique speakers from transcript (exclude Moderator)
+  const uniqueSpeakers = useMemo(() => Array.from(new Set(segments.map((s) => s.speaker))).filter((n) => n && n !== "Moderator"), [segments]);
   useEffect(() => {
     const el = transcriptRef.current;
     if (el) setIsAtTop(el.scrollTop <= 1);
@@ -800,7 +800,13 @@ setUnreadIds((prevSet) => {
             </CardContent>
           </Card>
         ) : (
-          <SpeakersForm />
+          <SpeakersForm
+            speakers={uniqueSpeakers}
+            onRename={({ from, to }) => {
+              setSegments((prev) => prev.map((s) => (s.speaker === from ? { ...s, speaker: to } : s)));
+            }}
+            aiRuns={runs}
+          />
         )}
       </main>
 
