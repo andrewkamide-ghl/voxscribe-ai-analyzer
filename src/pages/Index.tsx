@@ -58,10 +58,10 @@ const Index = () => {
   const itemRefs = useRef(new Map<string, HTMLDivElement>());
   const [isAtTop, setIsAtTop] = useState(true);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
+  const [badgeVisibleIds, setBadgeVisibleIds] = useState<Set<string>>(new Set());
+  const badgeTimersRef = useRef<Map<string, number>>(new Map());
   
   const prevLenRef = useRef<number>(initialSegments.length);
-  
-  
   
 
   useEffect(() => {
@@ -351,6 +351,52 @@ setUnreadIds((prevSet) => {
     }
   }
 
+  // Delay showing 'New Segment' badge by 3 seconds after a segment becomes unread
+  useEffect(() => {
+    const timers = badgeTimersRef.current;
+
+    // Start timers for newly unread segments that don't have a badge yet
+    unreadIds.forEach((id) => {
+      if (!badgeVisibleIds.has(id) && !timers.has(id)) {
+        const t = window.setTimeout(() => {
+          setBadgeVisibleIds((prev) => {
+            const next = new Set(prev);
+            if (unreadIds.has(id)) next.add(id); // still unread after delay
+            return next;
+          });
+          timers.delete(id);
+        }, 3000);
+        timers.set(id, t);
+      }
+    });
+
+    // Clear timers for segments that are no longer unread
+    Array.from(timers.entries()).forEach(([id, t]) => {
+      if (!unreadIds.has(id)) {
+        clearTimeout(t);
+        timers.delete(id);
+      }
+    });
+
+    // Remove badges for segments that are no longer unread
+    setBadgeVisibleIds((prev) => {
+      const next = new Set(prev);
+      prev.forEach((id) => {
+        if (!unreadIds.has(id)) next.delete(id);
+      });
+      return next;
+    });
+  }, [unreadIds, badgeVisibleIds]);
+
+  // Cleanup any pending timers on unmount
+  useEffect(() => {
+    return () => {
+      const timers = badgeTimersRef.current;
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -433,7 +479,7 @@ setUnreadIds((prevSet) => {
                       s.selected ? "bg-primary/5 ring-1 ring-primary" : unreadIds.has(s.id) ? "ring-1 ring-primary/40" : ""
                     }`}
                   >
-                    {unreadIds.has(s.id) && (
+                    {badgeVisibleIds.has(s.id) && (
                       <span className="pointer-events-none absolute -top-2 left-3 z-10">
                         <Badge className="h-5 px-2 py-0 text-[10px] rounded-full shadow-sm">New Segment</Badge>
                       </span>
@@ -460,7 +506,7 @@ setUnreadIds((prevSet) => {
 
               {unreadIds.size > 0 && (
                 <div className="sticky bottom-3 z-30 px-4 pointer-events-none">
-                  <div className="flex justify-end">
+                  <div className="flex justify-center">
                     <Button
                       variant="default"
                       onClick={scrollToLatest}
