@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, Users } from "lucide-react";
+import { Bot, Users, Folder } from "lucide-react";
 import React from "react";
 
-export type FeatureKey = "assistant" | "speakers";
+export type FeatureKey = "assistant" | "speakers" | "assets";
 
 interface RightFeatureBarProps {
   active: FeatureKey;
@@ -14,6 +14,7 @@ const RightFeatureBar: React.FC<RightFeatureBarProps> = ({ active, onChange }) =
   const items: { key: FeatureKey; label: string; icon: React.ReactNode }[] = [
     { key: "assistant", label: "AI Assistant", icon: <Bot className="h-5 w-5" aria-hidden="true" /> },
     { key: "speakers", label: "Speakers", icon: <Users className="h-5 w-5" aria-hidden="true" /> },
+    { key: "assets", label: "Assets", icon: <Folder className="h-5 w-5" aria-hidden="true" /> },
   ];
 
   return (

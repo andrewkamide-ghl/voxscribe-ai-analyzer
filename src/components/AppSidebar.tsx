@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom"
-import { Home, PhoneCall, Folder, Settings, LogOut, User2, PanelLeft, Users } from "lucide-react"
+import { Home, PhoneCall, Microscope, Settings, LogOut, User2, PanelLeft, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -22,7 +22,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const items = [
   { title: "Home", url: "/", icon: Home },
   { title: "Calls", url: "/calls", icon: PhoneCall },
-  { title: "Assets", url: "/assets", icon: Folder },
+  { title: "Research", url: "/research", icon: Microscope },
   { title: "Contacts", url: "/contacts", icon: Users },
   { title: "Settings", url: "/settings", icon: Settings },
 ]

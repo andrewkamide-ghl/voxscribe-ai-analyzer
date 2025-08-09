@@ -15,7 +15,7 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import RightFeatureBar from "@/components/RightFeatureBar";
 import SpeakersForm from "@/components/SpeakersForm";
-
+import AssetsPanel from "@/components/AssetsPanel";
 interface Segment {
   id: string;
   speaker: string;
@@ -142,7 +142,7 @@ const Index = () => {
   const prevLenRef = useRef<number>(initialSegments.length);
   
   // Right panel feature state: "assistant" (default) or "speakers"
-  const [activeFeature, setActiveFeature] = useState<"assistant" | "speakers">("assistant");
+  const [activeFeature, setActiveFeature] = useState<"assistant" | "speakers" | "assets">("assistant");
   // Unique speakers from transcript (exclude Moderator)
   const uniqueSpeakers = useMemo(() => Array.from(new Set(segments.map((s) => s.speaker))).filter((n) => n && n !== "Moderator"), [segments]);
   useEffect(() => {

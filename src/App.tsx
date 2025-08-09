@@ -9,6 +9,7 @@ import Contacts from "./pages/Contacts";
 import { HelmetProvider } from "react-helmet-async";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import Research from "./pages/Research";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/contacts" element={<Contacts />} />
+                  <Route path="/research" element={<Research />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
