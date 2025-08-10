@@ -422,6 +422,16 @@ setUnreadIds((prevSet) => {
               <Button variant="outline" size="sm" onClick={saveCall}>
                 <Download className="mr-2 h-4 w-4" /> Save Call
               </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  liveSession.clearTranscript();
+                  toast({ title: "Transcript cleared", description: "Start recording to capture new segments." });
+                }}
+              >
+                <Scissors className="mr-2 h-4 w-4" /> Clear Transcript
+              </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
                   {connected ? (

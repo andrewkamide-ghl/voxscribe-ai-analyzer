@@ -244,17 +244,29 @@ export const liveSession = {
       listeners.delete(listener);
     };
   },
-connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: boolean }) {
-  // Reset any previous session and start clean
+connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: boolean; reset?: boolean }) {
   stopTimer();
   try { audioSession.stop(); } catch {}
   currentMode = options?.mode ?? 'real';
   sampleIndex = 0;
+
+  // reset transient state for fresh utterance detection
   pending = null;
   lastVoiceAt = 0;
 
   const nowIso = new Date().toISOString();
-  state = { connected: true, name, startedAt: nowIso, segments: [], levelRMS: 0, levelPeak: 0, gated: false };
+  const reset = !!options?.reset;
+  state = reset
+    ? { connected: true, name, startedAt: nowIso, segments: [], levelRMS: 0, levelPeak: 0, gated: false }
+    : {
+        ...state,
+        connected: true,
+        name,
+        startedAt: state.startedAt || nowIso,
+        levelRMS: 0,
+        levelPeak: 0,
+        gated: false,
+      };
   callsStore.startLive(name);
 
   if (currentMode === 'demo') {
@@ -319,6 +331,12 @@ disconnect() {
       ...state,
       segments: state.segments.map((s) => ({ ...s, selected: false })),
     };
+    notify();
+  },
+  clearTranscript() {
+    pending = null;
+    lastVoiceAt = 0;
+    state = { ...state, segments: [] };
     notify();
   },
 renameSpeaker(from: string, to: string) {
