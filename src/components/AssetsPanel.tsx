@@ -13,8 +13,10 @@ const AssetsPanel = () => {
   const [items, setItems] = useState<ResearchItem[]>([]);
   const [q, setQ] = useState('');
 
-  useEffect(() => {
+useEffect(() => {
     setItems(researchStore.getAll());
+    const unsubscribe = researchStore.subscribe((list) => setItems(list));
+    return () => unsubscribe();
   }, []);
 
   const filtered = useMemo(() => {

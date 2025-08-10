@@ -13,13 +13,14 @@ import { Badge } from '@/components/ui/badge';
 const Research = () => {
   const [items, setItems] = useState<ResearchItem[]>([]);
 
-  useEffect(() => {
+useEffect(() => {
     setItems(researchStore.getAll());
+    const unsubscribe = researchStore.subscribe((list) => setItems(list));
+    return () => unsubscribe();
   }, []);
 
-  const remove = (id: string) => {
+const remove = (id: string) => {
     researchStore.remove(id);
-    setItems(researchStore.getAll());
   };
 
   return (
