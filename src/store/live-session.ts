@@ -128,8 +128,15 @@ let state: LiveSessionState = {
 
 const listeners = new Set<(s: LiveSessionState) => void>();
 let timer: number | null = null;
+let evalTimer: number | null = null;
 let sampleIndex = 0;
 let currentMode: 'demo' | 'real' | null = null;
+
+// snapshots for level evaluation
+let lastRMS = 0;
+let lastPeak = 0;
+let lastGated = false;
+let lastLevelAt = 0;
 
 // Utterance grouping configuration
 const SILENCE_MS = 900; // end-of-speech silence window
@@ -235,6 +242,38 @@ function stopTimer() {
   }
 }
 
+function startEvalTimer() {
+  if (evalTimer || currentMode !== 'real') return;
+  evalTimer = window.setInterval(evaluatePending, 200);
+}
+
+function stopEvalTimer() {
+  if (evalTimer) {
+    clearInterval(evalTimer);
+    evalTimer = null;
+  }
+}
+
+// Evaluate pending utterance based on timers and last known levels
+function evaluatePending() {
+  if (!pending) return;
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const dur = now - pending.startedAt;
+  if (dur >= MAX_UTTER_MS) {
+    finalizePending(true, "max_duration_tick");
+    return;
+  }
+  const sinceLastText = now - pending.lastTextAt;
+  if (sinceLastText >= INACTIVITY_FINALIZE_MS) {
+    finalizePending(true, "inactivity_tick");
+    return;
+  }
+  const speaking = (lastRMS >= SILENCE_RMS || lastPeak >= SILENCE_PEAK) && lastGated !== true;
+  if (!speaking && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
+    finalizePending(false, "silence_tick");
+  }
+}
+
 export const liveSession = {
   getState(): LiveSessionState {
     return state;
@@ -248,6 +287,7 @@ export const liveSession = {
   },
 connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: boolean; reset?: boolean }) {
   stopTimer();
+  stopEvalTimer();
   try { audioSession.stop(); } catch {}
   currentMode = options?.mode ?? 'real';
   sampleIndex = 0;
@@ -296,6 +336,11 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
         state = { ...state, levelRMS: rms, levelPeak: peak, gated: !!gated };
         notify();
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        // snapshot latest levels
+        lastRMS = rms;
+        lastPeak = peak;
+        lastGated = !!gated;
+        lastLevelAt = now;
         const speaking = (rms >= SILENCE_RMS || peak >= SILENCE_PEAK) && gated !== true;
         if (speaking) {
           lastVoiceAt = now;
@@ -318,6 +363,7 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
       },
     });
   }
+  startEvalTimer();
   notify();
 },
 disconnect() {
@@ -326,6 +372,7 @@ disconnect() {
   state = { ...state, connected: false };
   callsStore.endLive();
   stopTimer();
+  stopEvalTimer();
   try { audioSession.stop(); } catch {}
   notify();
 },
