@@ -137,15 +137,29 @@ let lastRMS = 0;
 let lastPeak = 0;
 let lastGated = false;
 let lastLevelAt = 0;
+// smoothed meters and stable speech state
+let smRMS = 0;
+let smPeak = 0;
+let speakingStable = false;
+let speechOnSince = 0;
+let speechOffSince = 0;
 
 // Utterance grouping configuration
-const SILENCE_MS = 900; // end-of-speech silence window
+const SILENCE_MS = 1200; // end-of-speech silence window (increased to avoid mid-speech splits)
 const MAX_UTTER_MS = 20000; // force finalize after this duration
 const INACTIVITY_FINALIZE_MS = 1800; // finalize if no new text arrives (inactivity)
 const MIN_CHARS = 18; // guardrail: avoid tiny segments
 const MIN_WORDS = 4;
 const SILENCE_RMS = 0.006;
 const SILENCE_PEAK = 0.03;
+
+// Hysteresis thresholds and holds for stable speech detection
+const SPEECH_RMS_ON = 0.012;
+const SPEECH_RMS_OFF = 0.008;
+const SPEECH_PEAK_ON = 0.06;
+const SPEECH_PEAK_OFF = 0.035;
+const SPEECH_ON_HOLD_MS = 150;
+const SPEECH_OFF_HOLD_MS = 400;
 
 type PendingUtterance = {
   speaker: string;
@@ -264,7 +278,7 @@ function evaluatePending() {
     finalizePending(true, "max_duration_tick");
     return;
   }
-  const speaking = (lastRMS >= SILENCE_RMS || lastPeak >= SILENCE_PEAK) && lastGated !== true;
+  const speaking = speakingStable;
   const sinceLastText = now - pending.lastTextAt;
   const inactivityMs = Math.max(
     INACTIVITY_FINALIZE_MS,
@@ -340,18 +354,41 @@ onText: (text) => {
         }
       },
       onLevel: (rms, peak, gated) => {
-        state = { ...state, levelRMS: rms, levelPeak: peak, gated: !!gated };
+        // smooth meters
+        smRMS = smRMS ? smRMS * 0.8 + rms * 0.2 : rms;
+        smPeak = smPeak ? smPeak * 0.8 + peak * 0.2 : peak;
+        state = { ...state, levelRMS: smRMS, levelPeak: smPeak, gated: !!gated };
         notify();
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        // snapshot latest levels
+        // snapshot latest raw levels
         lastRMS = rms;
         lastPeak = peak;
         lastGated = !!gated;
         lastLevelAt = now;
-const speaking = (rms >= SILENCE_RMS || peak >= SILENCE_PEAK) && gated !== true;
-        if (speaking) {
+
+        // Hysteresis-based speaking detection
+        const aboveOn = (smRMS >= SPEECH_RMS_ON) || (smPeak >= SPEECH_PEAK_ON);
+        const belowOff = (smRMS <= SPEECH_RMS_OFF) && (smPeak <= SPEECH_PEAK_OFF);
+        if (aboveOn) {
+          if (!speechOnSince) speechOnSince = now;
+          speechOffSince = 0;
+          if (!speakingStable && now - speechOnSince >= SPEECH_ON_HOLD_MS) {
+            speakingStable = true;
+          }
+        } else if (belowOff) {
+          if (!speechOffSince) speechOffSince = now;
+          speechOnSince = 0;
+          if (speakingStable && now - speechOffSince >= SPEECH_OFF_HOLD_MS) {
+            speakingStable = false;
+          }
+        } else {
+          // between thresholds: keep current holds but don't toggle
+        }
+
+        if (speakingStable) {
           lastVoiceAt = now;
         }
+
         if (pending) {
           const dur = now - pending.startedAt;
           if (dur >= MAX_UTTER_MS) {
@@ -363,11 +400,11 @@ const speaking = (rms >= SILENCE_RMS || peak >= SILENCE_PEAK) && gated !== true;
             INACTIVITY_FINALIZE_MS,
             pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
           );
-          if (!speaking && sinceLastText >= inactivityMs) {
+          if (!speakingStable && sinceLastText >= inactivityMs) {
             finalizePending(true, "inactivity");
             return;
           }
-          if (!speaking && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
+          if (!speakingStable && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
             finalizePending(false, "silence");
           }
         }

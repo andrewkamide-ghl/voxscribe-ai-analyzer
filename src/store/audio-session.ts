@@ -41,6 +41,7 @@ class AudioSessionImpl {
   private mixNode: MediaStreamAudioDestinationNode | null = null; // legacy, unused
   private mixGain: GainNode | null = null;
   private hp: BiquadFilterNode | null = null;
+  private lp: BiquadFilterNode | null = null;
   private comp: DynamicsCompressorNode | null = null;
   private onText: AudioStartOptions["onText"] | null = null;
   private onLevel: AudioStartOptions["onLevel"] | null = null;
@@ -96,8 +97,13 @@ class AudioSessionImpl {
 
     this.hp = this.ctx.createBiquadFilter();
     this.hp.type = "highpass";
-    this.hp.frequency.value = 100;
+    this.hp.frequency.value = 120;
     this.hp.Q.value = 0.707;
+
+    this.lp = this.ctx.createBiquadFilter();
+    this.lp.type = "lowpass";
+    this.lp.frequency.value = 6000;
+    this.lp.Q.value = 0.707;
 
     this.comp = this.ctx.createDynamicsCompressor();
     this.comp.threshold.value = -24;
@@ -109,7 +115,8 @@ class AudioSessionImpl {
     this.processor = this.ctx.createScriptProcessor(2048, 2, 1);
 
     this.mixGain.connect(this.hp);
-    this.hp.connect(this.comp);
+    this.hp.connect(this.lp);
+    this.lp.connect(this.comp);
     this.comp.connect(this.processor);
     this.processor.connect(this.ctx.destination); // required in some browsers for 'audioprocess' to fire
 
@@ -221,7 +228,8 @@ class AudioSessionImpl {
         .replace(/\s+/g, " ")
         .trim();
 const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
-      if (!cleaned || (cleaned.length < 14 && words.length < 3)) {
+      const hasVowel = /[aeiouy]/i.test(cleaned);
+      if (!cleaned || !hasVowel || (cleaned.length < 14 && words.length < 3)) {
         // Not confident enough; consume buffer tail and skip
         const keep = Math.floor(16000 * 0.5);
         this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
@@ -275,6 +283,7 @@ const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
         this.processor = null;
       }
       if (this.comp) { try { this.comp.disconnect(); } catch { } this.comp = null; }
+      if (this.lp) { try { this.lp.disconnect(); } catch { } this.lp = null; }
       if (this.hp) { try { this.hp.disconnect(); } catch { } this.hp = null; }
       if (this.mixGain) { try { this.mixGain.disconnect(); } catch { } this.mixGain = null; }
       if (this.ctx) {
