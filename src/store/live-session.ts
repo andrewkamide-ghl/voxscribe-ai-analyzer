@@ -131,6 +131,72 @@ let timer: number | null = null;
 let sampleIndex = 0;
 let currentMode: 'demo' | 'real' | null = null;
 
+// Utterance grouping configuration
+const SILENCE_MS = 900; // end-of-speech silence window
+const MAX_UTTER_MS = 8000; // force finalize after this duration
+const MIN_CHARS = 18; // guardrail: avoid tiny segments
+const MIN_WORDS = 4;
+const SILENCE_RMS = 0.006;
+const SILENCE_PEAK = 0.03;
+
+type PendingUtterance = {
+  speaker: string;
+  text: string;
+  startedAt: number;
+  lastTextAt: number;
+};
+
+let pending: PendingUtterance | null = null;
+let lastVoiceAt = 0;
+
+function overlapAppend(a: string, b: string): string {
+  const A = (a || "").trim();
+  const B = (b || "").trim();
+  if (!A) return B;
+  if (!B) return A;
+  if (B.startsWith(A)) return B; // B is a superset of A
+  if (A.endsWith(B)) return A;   // B already included
+
+  const aLow = A.toLowerCase();
+  const bLow = B.toLowerCase();
+  const maxOverlap = Math.min(60, A.length, B.length);
+  for (let k = maxOverlap; k >= 6; k--) {
+    if (aLow.slice(-k) === bLow.slice(0, k)) {
+      return A + B.slice(k);
+    }
+  }
+  return A + (A.endsWith(" ") || B.startsWith(" ") ? "" : " ") + B; // default append with space
+}
+
+function finalizePending(force = false) {
+  if (!pending) return;
+  const text = pending.text.trim();
+  const words = text ? text.split(/\s+/).filter(Boolean) : [];
+  const shouldKeep = words.length >= MIN_WORDS || text.length >= MIN_CHARS;
+  if (!force && !shouldKeep) {
+    // drop tiny utterances on silence
+    pending = null;
+    lastVoiceAt = 0;
+    return;
+  }
+  if (force && !(words.length >= 2 || text.length >= 8)) {
+    // still too small when forced
+    pending = null;
+    lastVoiceAt = 0;
+    return;
+  }
+  const seg = {
+    id: `s-${Date.now()}`,
+    speaker: pending.speaker,
+    timestamp: new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" }),
+    text,
+  } as Segment;
+  state = { ...state, segments: [...state.segments, seg] };
+  pending = null;
+  lastVoiceAt = 0;
+  notify();
+}
+
 function notify() {
   listeners.forEach((fn) => {
     try {
@@ -184,9 +250,11 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
   try { audioSession.stop(); } catch {}
   currentMode = options?.mode ?? 'real';
   sampleIndex = 0;
+  pending = null;
+  lastVoiceAt = 0;
 
-  const now = new Date().toISOString();
-  state = { connected: true, name, startedAt: now, segments: [] };
+  const nowIso = new Date().toISOString();
+  state = { connected: true, name, startedAt: nowIso, segments: [], levelRMS: 0, levelPeak: 0, gated: false };
   callsStore.startLive(name);
 
   if (currentMode === 'demo') {
@@ -197,17 +265,42 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
       system: !!options?.systemAudio,
       chunkSec: 4,
       onText: (text) => {
-        if (text) liveSession.addSegment('You', text);
+        const t = (text || "").trim();
+        if (!t) return;
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        if (!pending) {
+          pending = { speaker: "You", text: t, startedAt: now, lastTextAt: now };
+        } else {
+          pending.text = overlapAppend(pending.text, t);
+          pending.lastTextAt = now;
+        }
       },
-      onLevel: (rms, peak, gated) => {
-        state = { ...state, levelRMS: rms, levelPeak: peak, gated };
+      onLevel: (rms, peak) => {
+        state = { ...state, levelRMS: rms, levelPeak: peak, gated: rms < SILENCE_RMS && peak < SILENCE_PEAK };
         notify();
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const speaking = rms >= SILENCE_RMS || peak >= SILENCE_PEAK;
+        if (speaking) {
+          lastVoiceAt = now;
+        }
+        if (pending) {
+          const dur = now - pending.startedAt;
+          if (dur >= MAX_UTTER_MS) {
+            finalizePending(true);
+            return;
+          }
+          if (!speaking && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
+            finalizePending(false);
+          }
+        }
       },
     });
   }
   notify();
 },
 disconnect() {
+  // Finalize any pending utterance before stopping
+  finalizePending(true);
   state = { ...state, connected: false };
   callsStore.endLive();
   stopTimer();
