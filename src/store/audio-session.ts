@@ -8,6 +8,7 @@ export type AudioStartOptions = {
   system?: boolean; // capture current tab/system audio via getDisplayMedia
   chunkSec?: number; // seconds per transcription chunk (default 5)
   onText?: (text: string, source?: "mic" | "system" | "mix") => void;
+  onLevel?: (rms: number, peak: number, gated: boolean) => void; // live input meter callback
 };
 
 function downsampleBuffer(buffer: Float32Array, inSampleRate: number, outSampleRate = 16000): Float32Array {
@@ -42,10 +43,14 @@ class AudioSessionImpl {
   private hp: BiquadFilterNode | null = null;
   private comp: DynamicsCompressorNode | null = null;
   private onText: AudioStartOptions["onText"] | null = null;
+  private onLevel: AudioStartOptions["onLevel"] | null = null;
   private chunkSec = 4;
   private buffer16k: Float32Array[] = [];
   private busy = false;
   private interval: number | null = null;
+  private baselineRMS = 0.004;
+  private baselinePeak = 0.02;
+  private lastLevelAt = 0;
 
   async start(opts: AudioStartOptions = {}) {
     if (this.ctx) return; // already running
@@ -101,7 +106,7 @@ class AudioSessionImpl {
     this.comp.attack.value = 0.003;
     this.comp.release.value = 0.25;
 
-    this.processor = this.ctx.createScriptProcessor(2048, 1, 1);
+    this.processor = this.ctx.createScriptProcessor(2048, 2, 1);
 
     this.mixGain.connect(this.hp);
     this.hp.connect(this.comp);
@@ -109,6 +114,10 @@ class AudioSessionImpl {
     this.processor.connect(this.ctx.destination); // required in some browsers for 'audioprocess' to fire
 
     const inRate = this.ctx.sampleRate;
+    // reset adaptive baselines
+    this.baselineRMS = 0.004;
+    this.baselinePeak = 0.02;
+    this.lastLevelAt = 0;
     try {
       await this.ctx.resume();
       console.debug("AudioSession started", { sampleRate: inRate, inputs: sources.length });
@@ -128,6 +137,21 @@ class AudioSessionImpl {
           mix[i] += data[i] / ch;
         }
       }
+      // Frame-level RMS/peak for live meter (pre-downsample)
+      let fsum = 0, fpeak = 0;
+      for (let i = 0; i < len; i++) {
+        const v = mix[i];
+        fsum += v * v;
+        const av = v < 0 ? -v : v;
+        if (av > fpeak) fpeak = av;
+      }
+      const frameRMS = Math.sqrt(fsum / len);
+      const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      if (!this.lastLevelAt || now - this.lastLevelAt > 100) {
+        this.onLevel?.(frameRMS, fpeak, false);
+        this.lastLevelAt = now;
+      }
+
       const mono16k = downsampleBuffer(mix, inRate, 16000);
       this.buffer16k.push(mono16k);
       // keep max ~30s of audio
@@ -162,7 +186,7 @@ class AudioSessionImpl {
     const concat = this.concatBuffer(Math.min(needed, this.totalLen()));
     if (!concat || concat.length < 16000 * Math.max(1, this.chunkSec - 1)) return; // need enough audio
 
-    // Simple silence gate using RMS
+    // Adaptive silence gate using RMS and Peak with baselines
     let sum = 0;
     let peak = 0;
     for (let i = 0; i < concat.length; i++) {
@@ -172,10 +196,20 @@ class AudioSessionImpl {
       if (av > peak) peak = av;
     }
     const rms = Math.sqrt(sum / concat.length);
-    if (rms < 0.02 || peak < 0.06) {
-      // too quiet or too low peak; consume most of buffer and skip
+
+    const minRMS = 0.006;
+    const minPeak = 0.03;
+    const thrRMS = Math.max(minRMS, this.baselineRMS * 2.5);
+    const thrPeak = Math.max(minPeak, this.baselinePeak * 2.0);
+
+    const gated = rms < thrRMS && peak < thrPeak;
+    if (gated) {
+      // too quiet; update noise floor slowly, consume most of buffer and skip
+      this.baselineRMS = this.baselineRMS * 0.95 + rms * 0.05;
+      this.baselinePeak = this.baselinePeak * 0.95 + peak * 0.05;
       const keep = Math.floor(16000 * 0.5);
       this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
+      this.onLevel?.(rms, peak, true);
       return;
     }
 
@@ -212,17 +246,23 @@ class AudioSessionImpl {
 
   private concatBuffer(samples: number): Float32Array | null {
     if (samples <= 0) return null;
+    const total = this.totalLen();
     const out = new Float32Array(samples);
     let offset = 0;
-    // Take from the end (most recent)
-    let remaining = samples;
-    for (let i = this.buffer16k.length - 1; i >= 0 && remaining > 0; i--) {
+    let start = Math.max(0, total - samples);
+    for (let i = 0; i < this.buffer16k.length; i++) {
       const chunk = this.buffer16k[i];
-      const take = Math.min(chunk.length, remaining);
-      out.set(chunk.subarray(chunk.length - take), samples - remaining);
-      remaining -= take;
+      if (start >= chunk.length) {
+        start -= chunk.length;
+        continue;
+      }
+      const part = chunk.subarray(start);
+      out.set(part, offset);
+      offset += part.length;
+      start = 0;
+      if (offset >= samples) break;
     }
-    return out;
+    return out.subarray(0, samples);
   }
 
   stop() {

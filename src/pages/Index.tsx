@@ -23,6 +23,7 @@ import { askWithConfig } from "@/utils/AIClient";
 import { callsStore } from "@/store/calls";
 import { liveSession, type LiveSessionState } from "@/store/live-session";
 import { contactsStore, type Contact } from "@/store/contacts";
+import { Progress } from "@/components/ui/progress";
 // Live session state and sample data are managed in src/store/live-session.ts
 
 const Index = () => {

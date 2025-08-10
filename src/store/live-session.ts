@@ -14,6 +14,9 @@ export type LiveSessionState = {
   name: string;
   startedAt: string | null; // ISO or null if not started
   segments: Segment[];
+  levelRMS?: number;
+  levelPeak?: number;
+  gated?: boolean;
 };
 
 // Seed segments
@@ -118,6 +121,9 @@ let state: LiveSessionState = {
   name: "Live Call",
   startedAt: null,
   segments: [],
+  levelRMS: 0,
+  levelPeak: 0,
+  gated: false,
 };
 
 const listeners = new Set<(s: LiveSessionState) => void>();
@@ -189,9 +195,13 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
     audioSession.start({
       mic: true,
       system: !!options?.systemAudio,
-      chunkSec: 5,
+      chunkSec: 4,
       onText: (text) => {
         if (text) liveSession.addSegment('You', text);
+      },
+      onLevel: (rms, peak, gated) => {
+        state = { ...state, levelRMS: rms, levelPeak: peak, gated };
+        notify();
       },
     });
   }
