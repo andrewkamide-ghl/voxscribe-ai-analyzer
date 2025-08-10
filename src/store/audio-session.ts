@@ -37,9 +37,12 @@ class AudioSessionImpl {
   private micStream: MediaStream | null = null;
   private sysStream: MediaStream | null = null;
   private processor: ScriptProcessorNode | null = null;
-  private mixNode: MediaStreamAudioDestinationNode | null = null;
+  private mixNode: MediaStreamAudioDestinationNode | null = null; // legacy, unused
+  private mixGain: GainNode | null = null;
+  private hp: BiquadFilterNode | null = null;
+  private comp: DynamicsCompressorNode | null = null;
   private onText: AudioStartOptions["onText"] | null = null;
-  private chunkSec = 5;
+  private chunkSec = 4;
   private buffer16k: Float32Array[] = [];
   private busy = false;
   private interval: number | null = null;
@@ -47,7 +50,7 @@ class AudioSessionImpl {
   async start(opts: AudioStartOptions = {}) {
     if (this.ctx) return; // already running
 
-    this.chunkSec = Math.max(2, Math.floor(opts.chunkSec || 5));
+    this.chunkSec = Math.max(2, Math.floor(opts.chunkSec || 4));
     this.onText = opts.onText || null;
 
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -55,7 +58,16 @@ class AudioSessionImpl {
     const sources: MediaStreamAudioSourceNode[] = [];
 
     if (opts.mic !== false) {
-      this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      this.micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+        } as any,
+        video: false,
+      });
       const micSrc = this.ctx.createMediaStreamSource(this.micStream);
       sources.push(micSrc);
     }
@@ -71,10 +83,29 @@ class AudioSessionImpl {
       }
     }
 
-    // Mix to mono via ChannelMerger/ChannelSplitter is overkill; average channels in processor
-    this.processor = this.ctx.createScriptProcessor(2048, sources.length || 1, 1);
+    // Mix sources -> high-pass -> compressor -> processor (mono)
+    this.mixGain = this.ctx.createGain();
+    this.mixGain.gain.value = 1 / Math.max(1, sources.length);
 
-    sources.forEach((src) => src.connect(this.processor!));
+    sources.forEach((src) => src.connect(this.mixGain!));
+
+    this.hp = this.ctx.createBiquadFilter();
+    this.hp.type = "highpass";
+    this.hp.frequency.value = 100;
+    this.hp.Q.value = 0.707;
+
+    this.comp = this.ctx.createDynamicsCompressor();
+    this.comp.threshold.value = -24;
+    this.comp.knee.value = 30;
+    this.comp.ratio.value = 3;
+    this.comp.attack.value = 0.003;
+    this.comp.release.value = 0.25;
+
+    this.processor = this.ctx.createScriptProcessor(2048, 1, 1);
+
+    this.mixGain.connect(this.hp);
+    this.hp.connect(this.comp);
+    this.comp.connect(this.processor);
     this.processor.connect(this.ctx.destination); // required in some browsers for 'audioprocess' to fire
 
     const inRate = this.ctx.sampleRate;
@@ -132,9 +163,17 @@ class AudioSessionImpl {
     if (!concat || concat.length < 16000 * Math.max(1, this.chunkSec - 1)) return; // need enough audio
 
     // Simple silence gate using RMS
-    const rms = Math.sqrt(concat.reduce((acc, v) => acc + v * v, 0) / concat.length);
-    if (rms < 0.01) {
-      // too quiet; consume most of buffer and skip
+    let sum = 0;
+    let peak = 0;
+    for (let i = 0; i < concat.length; i++) {
+      const v = concat[i];
+      sum += v * v;
+      const av = v < 0 ? -v : v;
+      if (av > peak) peak = av;
+    }
+    const rms = Math.sqrt(sum / concat.length);
+    if (rms < 0.02 || peak < 0.06) {
+      // too quiet or too low peak; consume most of buffer and skip
       const keep = Math.floor(16000 * 0.5);
       this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
       return;
@@ -148,7 +187,7 @@ class AudioSessionImpl {
         .replace(/\s+/g, " ")
         .trim();
       const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
-      if (!cleaned || cleaned.length < 15 || words.length < 3) {
+      if (!cleaned || cleaned.length < 20 || words.length < 4) {
         // Not confident enough; consume buffer tail and skip
         const keep = Math.floor(16000 * 0.5);
         this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
@@ -195,6 +234,9 @@ class AudioSessionImpl {
         this.processor.onaudioprocess = null as any;
         this.processor = null;
       }
+      if (this.comp) { try { this.comp.disconnect(); } catch { } this.comp = null; }
+      if (this.hp) { try { this.hp.disconnect(); } catch { } this.hp = null; }
+      if (this.mixGain) { try { this.mixGain.disconnect(); } catch { } this.mixGain = null; }
       if (this.ctx) {
         try { this.ctx.close(); } catch { }
         this.ctx = null;
