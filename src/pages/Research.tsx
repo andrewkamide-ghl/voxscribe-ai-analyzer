@@ -1,7 +1,8 @@
+
 import { Helmet } from 'react-helmet-async';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CrawlForm from '@/components/CrawlForm';
+import AnalyzeUrlForm from '@/components/AnalyzeUrlForm';
 import AskWebForm from '@/components/AskWebForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { researchStore, type ResearchItem } from '@/store/research';
@@ -31,7 +32,7 @@ const Research = () => {
 
       <header className="mb-4">
         <h1 className="text-2xl font-semibold">Research</h1>
-        <p className="text-sm text-muted-foreground">Deep dive across the web. Crawl sites, ask the web, and save findings.</p>
+        <p className="text-sm text-muted-foreground">Deep dive across the web. Analyze URLs, ask questions, and save findings.</p>
       </header>
 
       <Tabs defaultValue="discover" className="w-full">
@@ -43,13 +44,13 @@ const Research = () => {
         <TabsContent value="discover" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-2">Crawl Websites</h2>
-              <p className="text-sm text-muted-foreground mb-3">Use Firecrawl API. Keys are stored locally for now.</p>
-              <CrawlForm />
+              <h2 className="text-lg font-semibold mb-2">Analyze URLs</h2>
+              <p className="text-sm text-muted-foreground mb-3">Use ChatGPT to analyze website content. OpenAI keys are stored locally.</p>
+              <AnalyzeUrlForm />
             </Card>
             <Card className="p-4">
               <h2 className="text-lg font-semibold mb-2">Ask the Web</h2>
-              <p className="text-sm text-muted-foreground mb-3">Choose model below. Keys are stored locally for now.</p>
+              <p className="text-sm text-muted-foreground mb-3">Ask questions and get AI-powered answers. OpenAI keys are stored locally.</p>
               <AskWebForm />
             </Card>
           </div>
