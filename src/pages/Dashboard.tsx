@@ -113,7 +113,7 @@ export default function Dashboard() {
 
       <Separator />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+      <div className="grid grid-cols-1 gap-4 mt-4">
         {/* Calls */}
         <Card className="h-full">
           <CardHeader className="flex-row items-center justify-between">
