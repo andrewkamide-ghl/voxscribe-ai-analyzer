@@ -17,6 +17,8 @@ export type LiveSessionState = {
   levelRMS?: number;
   levelPeak?: number;
   gated?: boolean;
+  pendingText?: string;
+  speaking?: boolean;
 };
 
 // Seed segments
@@ -124,6 +126,8 @@ let state: LiveSessionState = {
   levelRMS: 0,
   levelPeak: 0,
   gated: false,
+  pendingText: "",
+  speaking: false,
 };
 
 const listeners = new Set<(s: LiveSessionState) => void>();
@@ -161,6 +165,9 @@ const SPEECH_PEAK_OFF = 0.035;
 const SPEECH_ON_HOLD_MS = 150;
 const SPEECH_OFF_HOLD_MS = 900; // more stable OFF hold
 const FINALIZE_ARM_MS = 350; // debounce before finalizing once conditions met
+// Fallback finalization thresholds
+const LONG_SILENCE_MS = 2600;
+const LONG_INACTIVITY_MS = 3500;
 
 type PendingUtterance = {
   speaker: string;
@@ -217,7 +224,7 @@ function finalizePending(force = false, reason?: string) {
     timestamp: new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" }),
     text,
   } as Segment;
-  state = { ...state, segments: [...state.segments, seg] };
+  state = { ...state, segments: [...state.segments, seg], pendingText: "" };
   pending = null;
   lastVoiceAt = 0;
   notify();
@@ -296,6 +303,12 @@ function evaluatePending() {
       finalizeArmedAt = 0;
     }
   } else {
+    // Fallback paths when conditions individually persist
+    if (!speakingStable && lastVoiceAt && now - lastVoiceAt >= LONG_SILENCE_MS) {
+      finalizePending(false, "fallback_long_silence_tick");
+    } else if (sinceLastText >= LONG_INACTIVITY_MS) {
+      finalizePending(false, "fallback_long_inactivity_tick");
+    }
     finalizeArmedAt = 0;
   }
 }
@@ -326,7 +339,7 @@ finalizeArmedAt = 0;
   const nowIso = new Date().toISOString();
   const reset = !!options?.reset;
   state = reset
-    ? { connected: true, name, startedAt: nowIso, segments: [], levelRMS: 0, levelPeak: 0, gated: false }
+    ? { connected: true, name, startedAt: nowIso, segments: [], levelRMS: 0, levelPeak: 0, gated: false, pendingText: "", speaking: false }
     : {
         ...state,
         connected: true,
@@ -335,6 +348,8 @@ finalizeArmedAt = 0;
         levelRMS: 0,
         levelPeak: 0,
         gated: false,
+        pendingText: state.pendingText || "",
+        speaking: false,
       };
   callsStore.startLive(name);
 
@@ -344,7 +359,7 @@ finalizeArmedAt = 0;
     audioSession.start({
       mic: true,
       system: !!options?.systemAudio,
-      chunkSec: 3,
+      chunkSec: 2,
       onText: (text) => {
         const t = (text || "").trim();
         if (!t) return;
@@ -360,12 +375,14 @@ finalizeArmedAt = 0;
             pending.lastTextAt = now;
           }
         }
+        state = { ...state, pendingText: (pending?.text || "") };
+        notify();
       },
       onLevel: (rms, peak, gated) => {
         // smooth meters
         smRMS = smRMS ? smRMS * 0.8 + rms * 0.2 : rms;
         smPeak = smPeak ? smPeak * 0.8 + peak * 0.2 : peak;
-        state = { ...state, levelRMS: smRMS, levelPeak: smPeak, gated: !!gated };
+        state = { ...state, levelRMS: smRMS, levelPeak: smPeak, gated: !!gated, speaking: speakingStable };
         notify();
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         // snapshot latest raw levels
@@ -421,6 +438,12 @@ finalizeArmedAt = 0;
               finalizeArmedAt = 0;
             }
           } else {
+            // Fallback: finalize on long silence OR long inactivity
+            if (!speakingStable && lastVoiceAt && now - lastVoiceAt >= LONG_SILENCE_MS) {
+              finalizePending(false, "fallback_long_silence");
+            } else if (sinceLastText >= LONG_INACTIVITY_MS) {
+              finalizePending(false, "fallback_long_inactivity");
+            }
             finalizeArmedAt = 0;
           }
         }
@@ -433,7 +456,7 @@ finalizeArmedAt = 0;
 disconnect() {
   // Finalize any pending utterance before stopping
   finalizePending(true, "disconnect");
-  state = { ...state, connected: false };
+  state = { ...state, connected: false, pendingText: "", speaking: false };
   callsStore.endLive();
   stopTimer();
   stopEvalTimer();
@@ -457,7 +480,7 @@ disconnect() {
   clearTranscript() {
     pending = null;
     lastVoiceAt = 0;
-    state = { ...state, segments: [] };
+    state = { ...state, segments: [], pendingText: "" };
     notify();
   },
 renameSpeaker(from: string, to: string) {

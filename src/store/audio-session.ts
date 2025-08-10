@@ -110,7 +110,7 @@ class AudioSessionImpl {
     this.comp.knee.value = 30;
     this.comp.ratio.value = 3;
     this.comp.attack.value = 0.003;
-    this.comp.release.value = 0.25;
+    this.comp.release.value = 0.12;
 
     this.processor = this.ctx.createScriptProcessor(2048, 2, 1);
 

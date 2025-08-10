@@ -475,6 +475,18 @@ setUnreadIds((prevSet) => {
               
 
               <div className="px-4 pt-4 pb-16 space-y-3">
+                {connected && session.pendingText && session.pendingText.trim().length > 0 && (
+                  <div className="relative rounded-md border border-dashed p-3 bg-muted/40">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="rounded-md">You</Badge>
+                        <span className="text-xs text-muted-foreground">Live</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{session.speaking ? "Speaking…" : "Paused"}</div>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-foreground/90">{session.pendingText}</p>
+                  </div>
+                )}
                 {orderedSegments.map((s) => (
                   <div
                     key={s.id}
