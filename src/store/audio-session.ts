@@ -72,12 +72,18 @@ class AudioSessionImpl {
     }
 
     // Mix to mono via ChannelMerger/ChannelSplitter is overkill; average channels in processor
-    this.processor = this.ctx.createScriptProcessor(4096, sources.length || 1, 1);
+    this.processor = this.ctx.createScriptProcessor(2048, sources.length || 1, 1);
 
     sources.forEach((src) => src.connect(this.processor!));
     this.processor.connect(this.ctx.destination); // required in some browsers for 'audioprocess' to fire
 
     const inRate = this.ctx.sampleRate;
+    try {
+      await this.ctx.resume();
+      console.debug("AudioSession started", { sampleRate: inRate, inputs: sources.length });
+    } catch (e) {
+      console.warn("AudioContext resume failed", e);
+    }
 
     this.processor.onaudioprocess = (e) => {
       const input = e.inputBuffer;
@@ -124,10 +130,30 @@ class AudioSessionImpl {
     const needed = 16000 * this.chunkSec;
     const concat = this.concatBuffer(Math.min(needed, this.totalLen()));
     if (!concat || concat.length < 16000 * Math.max(1, this.chunkSec - 1)) return; // need enough audio
+
+    // Simple silence gate using RMS
+    const rms = Math.sqrt(concat.reduce((acc, v) => acc + v * v, 0) / concat.length);
+    if (rms < 0.006) {
+      // too quiet; skip this chunk
+      return;
+    }
+
     this.busy = true;
     try {
       const text = await localWhisper.transcribePCM(concat);
-      if (text && this.onText) this.onText(text, "mix");
+      let cleaned = (text || "")
+        .replace(/\[BLANK_AUDIO\]|<\|nospeech\|>/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (cleaned && this.onText) {
+        this.onText(cleaned, "mix");
+        // Consume most of the buffer to avoid re-processing; keep 0.5s tail
+        const keep = Math.floor(16000 * 0.5);
+        this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
+      }
+      console.debug("ASR result", { len: concat.length, rms: Number(rms.toFixed(5)), text: cleaned });
+    } catch (e) {
+      console.warn("ASR failed", e);
     } finally {
       this.busy = false;
     }

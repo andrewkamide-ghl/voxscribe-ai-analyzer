@@ -415,7 +415,7 @@ setUnreadIds((prevSet) => {
             </div>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox checked={captureTabAudio} onCheckedChange={(v) => setCaptureTabAudio(!!v)} />
+                <Checkbox checked={captureTabAudio} onCheckedChange={(v) => { const next = !!v; setCaptureTabAudio(next); if (next) { toast({ title: "Enable Share tab audio", description: "In the screen picker, select your tab/window and check 'Share tab audio'." }); } }} />
                 Capture tab audio
               </label>
               <Button variant="outline" size="sm" onClick={saveCall}>
