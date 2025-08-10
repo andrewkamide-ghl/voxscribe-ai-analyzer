@@ -26,22 +26,19 @@ export const AnalyzeUrlForm = () => {
     setResult(null);
     
     try {
-      // 1) Fetch and extract content via Supabase Edge Function
+      // 1) Fetch readable content client-side (no backend) via r.jina.ai
       setProgress(25);
-      const resp = await fetch('/functions/v1/fetch-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
+      const normalized = url.trim();
+      const clean = normalized.replace(/^https?:\/\//, '');
+      const proxied = `https://r.jina.ai/http://${clean}`;
+      const resp = await fetch(proxied, { method: 'GET' });
 
       if (!resp.ok) {
-        const msg = await resp.text();
-        throw new Error(`Fetcher error: ${resp.status} ${msg}`);
+        const msg = await resp.text().catch(() => '');
+        throw new Error(`Fetch failed (${resp.status}). Try a different URL.`);
       }
 
-      const data: { pages?: { url: string; title?: string; text?: string }[] } = await resp.json();
-      const page = data.pages?.[0];
-      const text = (page?.text || '').trim();
+      const text = (await resp.text()).trim();
 
       if (!text) {
         throw new Error('No readable content extracted from the URL.');
