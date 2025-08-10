@@ -40,7 +40,10 @@ const Calls = () => {
 
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Calls</h1>
-        <Button onClick={() => { liveSession.connect(); navigate("/calls/live"); }}>Start New Call</Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { liveSession.connect("Live Call", { mode: 'real' }); navigate("/calls/live"); }}>Start Real Call</Button>
+          <Button variant="outline" onClick={() => { liveSession.connect("Demo Call", { mode: 'demo' }); navigate("/calls/live"); }}>Use Demo Conversation</Button>
+        </div>
       </header>
 
       {live && (

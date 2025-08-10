@@ -1,4 +1,5 @@
 import { callsStore } from "./calls";
+import { audioSession } from "./audio-session";
 
 export type Segment = {
   id: string;
@@ -122,6 +123,7 @@ let state: LiveSessionState = {
 const listeners = new Set<(s: LiveSessionState) => void>();
 let timer: number | null = null;
 let sampleIndex = 0;
+let currentMode: 'demo' | 'real' | null = null;
 
 function notify() {
   listeners.forEach((fn) => {
@@ -132,7 +134,7 @@ function notify() {
 }
 
 function startTimer() {
-  if (timer) return;
+  if (timer || currentMode !== 'demo') return;
   timer = window.setInterval(() => {
     const line = POLITICAL_SAMPLE[sampleIndex % POLITICAL_SAMPLE.length];
     sampleIndex = (sampleIndex + 1) % POLITICAL_SAMPLE.length;
@@ -170,20 +172,33 @@ export const liveSession = {
       listeners.delete(listener);
     };
   },
-  connect(name = "Live Call") {
-    const now = new Date().toISOString();
-    const started = state.startedAt ?? now;
-    state = { ...state, connected: true, name, startedAt: started };
-    callsStore.startLive(name);
+connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: boolean }) {
+  const now = new Date().toISOString();
+  const started = state.startedAt ?? now;
+  state = { ...state, connected: true, name, startedAt: started };
+  callsStore.startLive(name);
+  currentMode = options?.mode ?? 'real';
+  if (currentMode === 'demo') {
     startTimer();
-    notify();
-  },
-  disconnect() {
-    state = { ...state, connected: false };
-    callsStore.endLive();
-    stopTimer();
-    notify();
-  },
+  } else {
+    audioSession.start({
+      mic: true,
+      system: !!options?.systemAudio,
+      chunkSec: 5,
+      onText: (text) => {
+        if (text) liveSession.addSegment('You', text);
+      },
+    });
+  }
+  notify();
+},
+disconnect() {
+  state = { ...state, connected: false };
+  callsStore.endLive();
+  stopTimer();
+  try { audioSession.stop(); } catch {}
+  notify();
+},
   toggleSelect(id: string) {
     state = {
       ...state,
@@ -198,11 +213,28 @@ export const liveSession = {
     };
     notify();
   },
-  renameSpeaker(from: string, to: string) {
-    state = {
-      ...state,
-      segments: state.segments.map((s) => (s.speaker === from ? { ...s, speaker: to } : s)),
-    };
-    notify();
-  },
+renameSpeaker(from: string, to: string) {
+  state = {
+    ...state,
+    segments: state.segments.map((s) => (s.speaker === from ? { ...s, speaker: to } : s)),
+  };
+  notify();
+},
+addSegment(speaker: string, text: string) {
+  const t = (text || "").trim();
+  if (!t) return;
+  state = {
+    ...state,
+    segments: [
+      ...state.segments,
+      {
+        id: `s-${Date.now()}`,
+        speaker,
+        timestamp: new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" }),
+        text: t,
+      },
+    ],
+  };
+  notify();
+},
 };

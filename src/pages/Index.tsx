@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,7 +33,7 @@ const Index = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [factChecking, setFactChecking] = useState(false);
   const [factResults, setFactResults] = useState<{ statement: string; score: number; citations: string[] }[]>([]);
-  
+  const [captureTabAudio, setCaptureTabAudio] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
  
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -412,7 +413,11 @@ setUnreadIds((prevSet) => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={captureTabAudio} onCheckedChange={(v) => setCaptureTabAudio(!!v)} />
+                Capture tab audio
+              </label>
               <Button variant="outline" size="sm" onClick={saveCall}>
                 <Download className="mr-2 h-4 w-4" /> Save Call
               </Button>
@@ -423,7 +428,11 @@ setUnreadIds((prevSet) => {
                       <PauseCircle className="mr-2 h-4 w-4" /> Stop
                     </Button>
                   ) : (
-                    <Button variant="default" size="sm" onClick={() => liveSession.connect()}>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => liveSession.connect(session.name || "Live Call", { mode: 'real', systemAudio: captureTabAudio })}
+                    >
                       <PlayCircle className="mr-2 h-4 w-4" /> Start
                     </Button>
                   )}
