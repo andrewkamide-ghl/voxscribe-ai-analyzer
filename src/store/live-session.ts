@@ -133,8 +133,8 @@ let currentMode: 'demo' | 'real' | null = null;
 
 // Utterance grouping configuration
 const SILENCE_MS = 900; // end-of-speech silence window
-const MAX_UTTER_MS = 15000; // force finalize after this duration (extended for long sentences)
-const INACTIVITY_FINALIZE_MS = 5600; // finalize if no new text arrives ~1.4x chunk time (4s)
+const MAX_UTTER_MS = 10000; // force finalize after this duration
+const INACTIVITY_FINALIZE_MS = 1800; // finalize if no new text arrives (inactivity)
 const MIN_CHARS = 18; // guardrail: avoid tiny segments
 const MIN_WORDS = 4;
 const SILENCE_RMS = 0.006;
@@ -169,23 +169,24 @@ function overlapAppend(a: string, b: string): string {
   return A + (A.endsWith(" ") || B.startsWith(" ") ? "" : " ") + B; // default append with space
 }
 
-function finalizePending(force = false) {
+function finalizePending(force = false, reason?: string) {
   if (!pending) return;
   const text = pending.text.trim();
   const words = text ? text.split(/\s+/).filter(Boolean) : [];
   const shouldKeep = words.length >= MIN_WORDS || text.length >= MIN_CHARS;
   if (!force && !shouldKeep) {
-    // drop tiny utterances on silence
+    console.debug("Finalize dropped (too small, silence)", { reason, len: text.length, words: words.length });
     pending = null;
     lastVoiceAt = 0;
     return;
   }
   if (force && !(words.length >= 2 || text.length >= 8)) {
-    // still too small when forced
+    console.debug("Finalize dropped (too small, forced)", { reason, len: text.length, words: words.length });
     pending = null;
     lastVoiceAt = 0;
     return;
   }
+  console.debug("Finalize utterance", { reason, force, len: text.length, words: words.length });
   const seg = {
     id: `s-${Date.now()}`,
     speaker: pending.speaker,
@@ -284,31 +285,34 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
         if (!pending) {
           pending = { speaker: "You", text: t, startedAt: now, lastTextAt: now };
         } else {
-          pending.text = overlapAppend(pending.text, t);
-          pending.lastTextAt = now;
+          const next = overlapAppend(pending.text, t);
+          if (next !== pending.text) {
+            pending.text = next;
+            pending.lastTextAt = now;
+          }
         }
       },
-      onLevel: (rms, peak) => {
-        state = { ...state, levelRMS: rms, levelPeak: peak, gated: rms < SILENCE_RMS && peak < SILENCE_PEAK };
+      onLevel: (rms, peak, gated) => {
+        state = { ...state, levelRMS: rms, levelPeak: peak, gated: !!gated };
         notify();
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        const speaking = rms >= SILENCE_RMS || peak >= SILENCE_PEAK;
+        const speaking = (rms >= SILENCE_RMS || peak >= SILENCE_PEAK) && gated !== true;
         if (speaking) {
           lastVoiceAt = now;
         }
         if (pending) {
           const dur = now - pending.startedAt;
           if (dur >= MAX_UTTER_MS) {
-            finalizePending(true);
+            finalizePending(true, "max_duration");
             return;
           }
           const sinceLastText = now - pending.lastTextAt;
           if (sinceLastText >= INACTIVITY_FINALIZE_MS) {
-            finalizePending(true);
+            finalizePending(true, "inactivity");
             return;
           }
           if (!speaking && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
-            finalizePending(false);
+            finalizePending(false, "silence");
           }
         }
       },
@@ -318,7 +322,7 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
 },
 disconnect() {
   // Finalize any pending utterance before stopping
-  finalizePending(true);
+  finalizePending(true, "disconnect");
   state = { ...state, connected: false };
   callsStore.endLive();
   stopTimer();
