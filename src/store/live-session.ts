@@ -345,7 +345,7 @@ finalizeArmedAt = 0;
       mic: true,
       system: !!options?.systemAudio,
       chunkSec: 3,
-onText: (text) => {
+      onText: (text) => {
         const t = (text || "").trim();
         if (!t) return;
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -374,58 +374,55 @@ onText: (text) => {
         lastGated = !!gated;
         lastLevelAt = now;
 
-// Hysteresis-based speaking detection with impulse guard
-const ratio = smPeak / (smRMS + 1e-6);
-const isImpulse = ratio > 12 && smRMS < SILENCE_RMS * 1.1;
-const aboveOn = (smRMS >= SPEECH_RMS_ON) || ((smPeak >= SPEECH_PEAK_ON) && smRMS >= SILENCE_RMS);
-const belowOff = (smRMS <= SPEECH_RMS_OFF) && (smPeak <= SPEECH_PEAK_OFF);
-if (!isImpulse) {
-  if (aboveOn) {
-    if (!speechOnSince) speechOnSince = now;
-    speechOffSince = 0;
-    if (!speakingStable && now - speechOnSince >= SPEECH_ON_HOLD_MS) {
-      speakingStable = true;
-    }
-  } else if (belowOff) {
-    if (!speechOffSince) speechOffSince = now;
-    speechOnSince = 0;
-    if (speakingStable && now - speechOffSince >= SPEECH_OFF_HOLD_MS) {
-      speakingStable = false;
-    }
-  } else {
-    // between thresholds: keep holds
-  }
-}
+        // Hysteresis-based speaking detection with impulse guard
+        const ratio = smPeak / (smRMS + 1e-6);
+        const isImpulse = ratio > 12 && smRMS < SILENCE_RMS * 1.1;
+        const aboveOn = (smRMS >= SPEECH_RMS_ON) || ((smPeak >= SPEECH_PEAK_ON) && smRMS >= SILENCE_RMS);
+        const belowOff = (smRMS <= SPEECH_RMS_OFF) && (smPeak <= SPEECH_PEAK_OFF);
+        if (!isImpulse) {
+          if (aboveOn) {
+            if (!speechOnSince) speechOnSince = now;
+            speechOffSince = 0;
+            if (!speakingStable && now - speechOnSince >= SPEECH_ON_HOLD_MS) {
+              speakingStable = true;
+            }
+          } else if (belowOff) {
+            if (!speechOffSince) speechOffSince = now;
+            speechOnSince = 0;
+            if (speakingStable && now - speechOffSince >= SPEECH_OFF_HOLD_MS) {
+              speakingStable = false;
+            }
+          } // else keep holds
+        }
 
-if (speakingStable && !isImpulse) {
-  lastVoiceAt = now;
-}
+        if (speakingStable && !isImpulse) {
+          lastVoiceAt = now;
+        }
 
-if (pending) {
-  const dur = now - pending.startedAt;
-  if (dur >= MAX_UTTER_MS) {
-    finalizePending(true, "max_duration");
-    finalizeArmedAt = 0;
-    return;
-  }
-  const sinceLastText = now - pending.lastTextAt;
-  const inactivityMs = Math.max(
-    INACTIVITY_FINALIZE_MS,
-    pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
-  );
-  const silenceOk = !speakingStable && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS;
-  const inactivityOk = !speakingStable && sinceLastText >= inactivityMs;
+        if (pending) {
+          const dur = now - pending.startedAt;
+          if (dur >= MAX_UTTER_MS) {
+            finalizePending(true, "max_duration");
+            finalizeArmedAt = 0;
+            return;
+          }
+          const sinceLastText = now - pending.lastTextAt;
+          const inactivityMs = Math.max(
+            INACTIVITY_FINALIZE_MS,
+            pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
+          );
+          const silenceOk = !speakingStable && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS;
+          const inactivityOk = !speakingStable && sinceLastText >= inactivityMs;
 
-  if (silenceOk && inactivityOk) {
-    if (!finalizeArmedAt) finalizeArmedAt = now;
-    else if (now - finalizeArmedAt >= FINALIZE_ARM_MS) {
-      finalizePending(false, "armed_both");
-      finalizeArmedAt = 0;
-    }
-  } else {
-    finalizeArmedAt = 0;
-  }
-}
+          if (silenceOk && inactivityOk) {
+            if (!finalizeArmedAt) finalizeArmedAt = now;
+            else if (now - finalizeArmedAt >= FINALIZE_ARM_MS) {
+              finalizePending(false, "armed_both");
+              finalizeArmedAt = 0;
+            }
+          } else {
+            finalizeArmedAt = 0;
+          }
         }
       },
     });
