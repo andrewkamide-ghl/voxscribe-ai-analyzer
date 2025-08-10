@@ -133,8 +133,10 @@ class AudioSessionImpl {
 
     // Simple silence gate using RMS
     const rms = Math.sqrt(concat.reduce((acc, v) => acc + v * v, 0) / concat.length);
-    if (rms < 0.006) {
-      // too quiet; skip this chunk
+    if (rms < 0.01) {
+      // too quiet; consume most of buffer and skip
+      const keep = Math.floor(16000 * 0.5);
+      this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
       return;
     }
 
@@ -145,13 +147,19 @@ class AudioSessionImpl {
         .replace(/\[BLANK_AUDIO\]|<\|nospeech\|>/gi, "")
         .replace(/\s+/g, " ")
         .trim();
-      if (cleaned && this.onText) {
+      const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+      if (!cleaned || cleaned.length < 15 || words.length < 3) {
+        // Not confident enough; consume buffer tail and skip
+        const keep = Math.floor(16000 * 0.5);
+        this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
+        console.debug("ASR skipped (short/low-confidence)", { len: concat.length, rms: Number(rms.toFixed(5)), text: cleaned });
+      } else if (this.onText) {
         this.onText(cleaned, "mix");
         // Consume most of the buffer to avoid re-processing; keep 0.5s tail
         const keep = Math.floor(16000 * 0.5);
         this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
+        console.debug("ASR accepted", { len: concat.length, rms: Number(rms.toFixed(5)), text: cleaned });
       }
-      console.debug("ASR result", { len: concat.length, rms: Number(rms.toFixed(5)), text: cleaned });
     } catch (e) {
       console.warn("ASR failed", e);
     } finally {

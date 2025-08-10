@@ -117,7 +117,7 @@ let state: LiveSessionState = {
   connected: false,
   name: "Live Call",
   startedAt: null,
-  segments: [...initialSegments],
+  segments: [],
 };
 
 const listeners = new Set<(s: LiveSessionState) => void>();
@@ -173,11 +173,16 @@ export const liveSession = {
     };
   },
 connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: boolean }) {
-  const now = new Date().toISOString();
-  const started = state.startedAt ?? now;
-  state = { ...state, connected: true, name, startedAt: started };
-  callsStore.startLive(name);
+  // Reset any previous session and start clean
+  stopTimer();
+  try { audioSession.stop(); } catch {}
   currentMode = options?.mode ?? 'real';
+  sampleIndex = 0;
+
+  const now = new Date().toISOString();
+  state = { connected: true, name, startedAt: now, segments: [] };
+  callsStore.startLive(name);
+
   if (currentMode === 'demo') {
     startTimer();
   } else {
