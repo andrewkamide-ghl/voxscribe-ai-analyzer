@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CircleDot, ArrowRight } from "lucide-react";
 import { callsStore, type Call, type LiveCall } from "@/store/calls";
+import { liveSession } from "@/store/live-session";
 
 const Calls = () => {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const Calls = () => {
 
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Calls</h1>
-        <Button onClick={() => navigate("/calls/live")}>Start New Call</Button>
+        <Button onClick={() => { liveSession.connect(); navigate("/calls/live"); }}>Start New Call</Button>
       </header>
 
       {live && (
