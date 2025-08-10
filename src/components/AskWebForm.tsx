@@ -14,15 +14,10 @@ export const AskWebForm = () => {
   const { config } = useAIConfig();
   const [question, setQuestion] = useState('');
   const [context, setContext] = useState('');
-  const [pplxKey, setPplxKey] = useState<string>(() => localStorage.getItem('perplexity_api_key') || '');
+  
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const saveKey = () => {
-    if (!pplxKey) return;
-    localStorage.setItem('perplexity_api_key', pplxKey);
-    toast({ title: 'Perplexity set', description: 'API key saved to this browser.' });
-  };
 
 const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,17 +62,6 @@ return (
           <Textarea id="ctx" value={context} onChange={(e) => setContext(e.target.value)} placeholder="Any notes, constraints, or specific angles." />
         </div>
 
-        {config.provider === 'perplexity' && !localStorage.getItem('perplexity_api_key') && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-medium" htmlFor="pplx-key">Perplexity API Key</label>
-              <Input id="pplx-key" value={pplxKey} onChange={(e) => setPplxKey(e.target.value)} placeholder="pplx_..." />
-            </div>
-            <div className="flex items-end">
-              <Button type="button" onClick={saveKey} className="w-full">Save key</Button>
-            </div>
-          </div>
-        )}
 
         <div className="flex gap-2">
           <Button type="submit" disabled={loading}>Ask</Button>

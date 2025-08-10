@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export type AIProvider = "perplexity" | "openai";
+export type AIProvider = "openai";
 
 export interface AIConfig {
   provider: AIProvider;
@@ -14,13 +14,13 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULTS: Record<AIProvider, string> = {
-  perplexity: "llama-3.1-sonar-small-128k-online",
   openai: "gpt-4o-mini",
 };
 
 export function getAIConfig(): AIConfig {
-  const provider = (localStorage.getItem(STORAGE_KEYS.provider) as AIProvider) || "perplexity";
-  const model = localStorage.getItem(STORAGE_KEYS.model) || DEFAULTS[provider];
+  const provider: AIProvider = "openai";
+  const storedModel = localStorage.getItem(STORAGE_KEYS.model);
+  const model = storedModel || DEFAULTS.openai;
   return { provider, model };
 }
 
@@ -46,7 +46,7 @@ export function useAIConfig() {
     try {
       return getAIConfig();
     } catch {
-      return { provider: "perplexity", model: DEFAULTS.perplexity };
+      return { provider: "openai", model: DEFAULTS.openai };
     }
   });
 

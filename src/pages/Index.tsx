@@ -124,13 +124,14 @@ const POLITICAL_SAMPLE: { speaker: string; text: string }[] = [
 ];
 
 const Index = () => {
+  const { config } = useAIConfig();
   const [connected, setConnected] = useState(true);
   const [segments, setSegments] = useState<Segment[]>(initialSegments);
   const [analyzing, setAnalyzing] = useState(false);
   const [simulate, setSimulate] = useState(true);
   const [factChecking, setFactChecking] = useState(false);
   const [factResults, setFactResults] = useState<{ statement: string; score: number; citations: string[] }[]>([]);
-  const [perplexityKey, setPerplexityKey] = useState<string>(() => (typeof window !== "undefined" ? localStorage.getItem("perplexity_api_key") || "" : ""));
+  
   const containerRef = useRef<HTMLDivElement | null>(null);
  
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -340,14 +341,10 @@ setUnreadIds((prevSet) => {
       toast({ title: "No selection", description: "Select transcript segments to fact check." });
       return;
     }
-    if (!perplexityKey) {
-      toast({ title: "API key required", description: "Add a Perplexity API key below to enable fact checking." });
-      return;
-    }
 
     try {
       setFactChecking(true);
-      toast({ title: "Fact checking…", description: "Searching the web and evaluating statements." });
+      toast({ title: "Fact checking…", description: "Analyzing statements with ChatGPT." });
 
       const statements = selectedText
         .split(/\n+/)
@@ -355,40 +352,23 @@ setUnreadIds((prevSet) => {
         .filter(Boolean)
         .slice(0, 6);
 
-      const response = await fetch("https://api.perplexity.ai/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${perplexityKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-sonar-small-128k-online",
-          temperature: 0.2,
-          top_p: 0.9,
-          max_tokens: 900,
-          search_recency_filter: "year",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a precise fact-checker. Given a list of statements, search the web and return strictly a JSON array where each item has {\"statement\": string, \"score\": integer 0-100 (likelihood the statement is factually correct), \"citations\": string[] of up to 3 relevant URLs}. Do not include any extra text.",
-            },
-            {
-              role: "user",
-              content: statements.map((s, i) => `${i + 1}. ${s}`).join("\n"),
-            },
-          ],
-        }),
-      });
+      const prompt = [
+        "You are a precise fact-checker.",
+        "Given a list of statements, evaluate each for factual accuracy.",
+        "Return strictly a JSON array where each item has {\"statement\": string, \"score\": integer 0-100 (likelihood the statement is factually correct), \"citations\": string[] of up to 3 relevant URLs}.",
+        "Do not include any extra text.",
+        "",
+        statements.map((s, i) => `${i + 1}. ${s}`).join("\n"),
+      ].join("\n");
 
-      const data = await response.json();
+      const data = await askWithConfig(config, prompt);
       const content = data?.choices?.[0]?.message?.content as string;
 
       let parsed: any[] = [];
       if (content) {
         const match = content.match(/\[[\s\S]*\]/);
         if (match) {
-          parsed = JSON.parse(match[0]);
+          try { parsed = JSON.parse(match[0]); } catch {}
         }
       }
 
@@ -406,7 +386,7 @@ setUnreadIds((prevSet) => {
       console.error(error);
       toast({
         title: "Fact check failed",
-        description: "Verify your API key and try again.",
+        description: "Add your OpenAI API key in Settings and try again.",
         variant: "destructive",
       });
     } finally {
