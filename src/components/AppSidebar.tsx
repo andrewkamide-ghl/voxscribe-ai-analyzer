@@ -19,6 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
+import { useI18n } from "@/store/i18n";
+
 const items = [
   { title: "Home", url: "/", icon: Home },
   { title: "Calls", url: "/calls", icon: PhoneCall },
