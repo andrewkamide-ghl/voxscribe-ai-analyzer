@@ -19,6 +19,8 @@ import AssetsPanel from "@/components/AssetsPanel";
 import AIModelSelector from "@/components/AIModelSelector";
 import { useAIConfig } from "@/store/ai";
 import { askWithConfig } from "@/utils/AIClient";
+import { callsStore } from "@/store/calls";
+import { contactsStore, type Contact } from "@/store/contacts";
 interface Segment {
   id: string;
   speaker: string;
@@ -149,6 +151,24 @@ const Index = () => {
   const [activeFeature, setActiveFeature] = useState<"assistant" | "speakers" | "assets">("assistant");
   // Unique speakers from transcript (exclude Moderator)
   const uniqueSpeakers = useMemo(() => Array.from(new Set(segments.map((s) => s.speaker))).filter((n) => n && n !== "Moderator"), [segments]);
+
+  function saveCall() {
+    const name = `Call ${new Date().toLocaleString()}`;
+    const time = new Date().toISOString();
+    const participants = uniqueSpeakers;
+    const allContacts = contactsStore.getAll();
+    const savedContacts = participants
+      .map((n) => allContacts.find((c) => c.name === n))
+      .filter(Boolean) as Contact[];
+    callsStore.add({
+      name,
+      time,
+      totalSegments: segments.length,
+      contacts: savedContacts.map((c) => ({ id: c.id, name: c.name })),
+    });
+    toast({ title: "Call saved", description: "Added to Calls." });
+  }
+
   useEffect(() => {
     const el = transcriptRef.current;
     if (el) setIsAtTop(el.scrollTop <= 1);
@@ -507,7 +527,10 @@ setUnreadIds((prevSet) => {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={saveCall}>
+                <Download className="mr-2 h-4 w-4" /> Save Call
+              </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
                   {connected ? (

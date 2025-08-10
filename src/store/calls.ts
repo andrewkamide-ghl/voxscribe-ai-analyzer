@@ -1,34 +1,33 @@
-export type Contact = {
+export type Call = {
   id: string;
   name: string;
-  background?: string;
-  coreBeliefs?: string;
-  social?: string;
-  notes?: string;
-  aiRuns?: any[]; // optional AI assistant content snapshots
+  time: string; // ISO
+  totalSegments: number;
+  contacts: { id: string; name: string }[]; // only saved contacts
   createdAt: string; // ISO
   updatedAt: string; // ISO
 };
 
-const STORAGE_KEY = "contacts_store_v1";
+const STORAGE_KEY = "calls_store_v1";
 
-function read(): Contact[] {
+function read(): Call[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Contact[]) : [];
+    return raw ? (JSON.parse(raw) as Call[]) : [];
   } catch {
     return [];
   }
 }
 
-function write(list: Contact[]) {
+function write(list: Call[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch {
     // noop
   }
 }
-type Listener = (list: Contact[]) => void;
+
+type Listener = (list: Call[]) => void;
 const listeners = new Set<Listener>();
 
 function notify() {
@@ -42,31 +41,32 @@ function notify() {
   });
 }
 
-export const contactsStore = {
-  getAll(): Contact[] {
+export const callsStore = {
+  getAll(): Call[] {
     return read();
   },
   subscribe(listener: Listener) {
     listeners.add(listener);
+    // emit immediately
     try { listener(read()); } catch {}
     return () => {
       listeners.delete(listener);
     };
   },
-  add(contact: Omit<Contact, "id" | "createdAt" | "updatedAt">): Contact {
+  add(item: Omit<Call, "id" | "createdAt" | "updatedAt">): Call {
     const list = read();
     const now = new Date().toISOString();
-    const newItem: Contact = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, ...contact };
+    const newItem: Call = { id: crypto.randomUUID(), createdAt: now, updatedAt: now, ...item };
     list.unshift(newItem);
     write(list);
     notify();
     return newItem;
   },
-  update(id: string, patch: Partial<Contact>): Contact | null {
+  update(id: string, patch: Partial<Call>): Call | null {
     const list = read();
     const idx = list.findIndex((c) => c.id === id);
     if (idx === -1) return null;
-    const updated = { ...list[idx], ...patch, updatedAt: new Date().toISOString() };
+    const updated = { ...list[idx], ...patch, updatedAt: new Date().toISOString() } as Call;
     list[idx] = updated;
     write(list);
     notify();
