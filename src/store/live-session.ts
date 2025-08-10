@@ -133,7 +133,8 @@ let currentMode: 'demo' | 'real' | null = null;
 
 // Utterance grouping configuration
 const SILENCE_MS = 900; // end-of-speech silence window
-const MAX_UTTER_MS = 8000; // force finalize after this duration
+const MAX_UTTER_MS = 15000; // force finalize after this duration (extended for long sentences)
+const INACTIVITY_FINALIZE_MS = 5600; // finalize if no new text arrives ~1.4x chunk time (4s)
 const MIN_CHARS = 18; // guardrail: avoid tiny segments
 const MIN_WORDS = 4;
 const SILENCE_RMS = 0.006;
@@ -298,6 +299,11 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
         if (pending) {
           const dur = now - pending.startedAt;
           if (dur >= MAX_UTTER_MS) {
+            finalizePending(true);
+            return;
+          }
+          const sinceLastText = now - pending.lastTextAt;
+          if (sinceLastText >= INACTIVITY_FINALIZE_MS) {
             finalizePending(true);
             return;
           }
