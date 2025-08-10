@@ -26,23 +26,44 @@ export const AnalyzeUrlForm = () => {
     setResult(null);
     
     try {
-      setProgress(30);
-      
-      const prompt = `Please analyze the webpage at: ${url}
+      // 1) Fetch and extract content via Supabase Edge Function
+      setProgress(25);
+      const resp = await fetch('/functions/v1/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
 
-${topic ? `Focus on: ${topic}` : ''}
+      if (!resp.ok) {
+        const msg = await resp.text();
+        throw new Error(`Fetcher error: ${resp.status} ${msg}`);
+      }
 
-Please provide:
-1. A summary of the main content
-2. Key points and insights
-3. Any relevant data or statistics mentioned
-4. The overall purpose and value of this webpage
+      const data: { pages?: { url: string; title?: string; text?: string }[] } = await resp.json();
+      const page = data.pages?.[0];
+      const text = (page?.text || '').trim();
 
-Note: If you cannot directly access the URL due to technical limitations, please explain that you cannot browse the web in real-time and suggest that the user copy and paste the content they want analyzed.`;
+      if (!text) {
+        throw new Error('No readable content extracted from the URL.');
+      }
 
+      // 2) Ask the model with the extracted text as context
       setProgress(60);
-      
-      const response = await askWithConfig(config, prompt);
+      const message = [
+        `Analyze the following webpage content from: ${url}`,
+        topic ? `Focus on: ${topic}` : null,
+        '',
+        'Please provide:',
+        '1. A concise summary',
+        '2. Key points and insights',
+        '3. Any relevant data or statistics mentioned',
+        '4. The overall purpose and value of the page',
+        '5. Cite the source URL in your answer',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const response = await askWithConfig(config, message, text.slice(0, 120000));
       const analysis = response?.choices?.[0]?.message?.content || 'No analysis returned.';
       
       setResult(analysis);
