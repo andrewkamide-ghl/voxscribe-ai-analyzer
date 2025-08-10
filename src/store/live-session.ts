@@ -140,7 +140,7 @@ let lastLevelAt = 0;
 
 // Utterance grouping configuration
 const SILENCE_MS = 900; // end-of-speech silence window
-const MAX_UTTER_MS = 10000; // force finalize after this duration
+const MAX_UTTER_MS = 20000; // force finalize after this duration
 const INACTIVITY_FINALIZE_MS = 1800; // finalize if no new text arrives (inactivity)
 const MIN_CHARS = 18; // guardrail: avoid tiny segments
 const MIN_WORDS = 4;
@@ -152,6 +152,7 @@ type PendingUtterance = {
   text: string;
   startedAt: number;
   lastTextAt: number;
+  avgOnTextMs?: number;
 };
 
 let pending: PendingUtterance | null = null;
@@ -263,12 +264,16 @@ function evaluatePending() {
     finalizePending(true, "max_duration_tick");
     return;
   }
+  const speaking = (lastRMS >= SILENCE_RMS || lastPeak >= SILENCE_PEAK) && lastGated !== true;
   const sinceLastText = now - pending.lastTextAt;
-  if (sinceLastText >= INACTIVITY_FINALIZE_MS) {
+  const inactivityMs = Math.max(
+    INACTIVITY_FINALIZE_MS,
+    pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
+  );
+  if (!speaking && sinceLastText >= inactivityMs) {
     finalizePending(true, "inactivity_tick");
     return;
   }
-  const speaking = (lastRMS >= SILENCE_RMS || lastPeak >= SILENCE_PEAK) && lastGated !== true;
   if (!speaking && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
     finalizePending(false, "silence_tick");
   }
@@ -318,16 +323,18 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
       mic: true,
       system: !!options?.systemAudio,
       chunkSec: 4,
-      onText: (text) => {
+onText: (text) => {
         const t = (text || "").trim();
         if (!t) return;
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         if (!pending) {
-          pending = { speaker: "You", text: t, startedAt: now, lastTextAt: now };
+          pending = { speaker: "You", text: t, startedAt: now, lastTextAt: now, avgOnTextMs: undefined };
         } else {
           const next = overlapAppend(pending.text, t);
           if (next !== pending.text) {
+            const delta = now - pending.lastTextAt;
             pending.text = next;
+            pending.avgOnTextMs = pending.avgOnTextMs ? (pending.avgOnTextMs * 0.7 + delta * 0.3) : delta;
             pending.lastTextAt = now;
           }
         }
@@ -341,7 +348,7 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
         lastPeak = peak;
         lastGated = !!gated;
         lastLevelAt = now;
-        const speaking = (rms >= SILENCE_RMS || peak >= SILENCE_PEAK) && gated !== true;
+const speaking = (rms >= SILENCE_RMS || peak >= SILENCE_PEAK) && gated !== true;
         if (speaking) {
           lastVoiceAt = now;
         }
@@ -352,7 +359,11 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
             return;
           }
           const sinceLastText = now - pending.lastTextAt;
-          if (sinceLastText >= INACTIVITY_FINALIZE_MS) {
+          const inactivityMs = Math.max(
+            INACTIVITY_FINALIZE_MS,
+            pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
+          );
+          if (!speaking && sinceLastText >= inactivityMs) {
             finalizePending(true, "inactivity");
             return;
           }

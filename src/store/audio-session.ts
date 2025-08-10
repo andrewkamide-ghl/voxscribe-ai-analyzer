@@ -220,8 +220,8 @@ class AudioSessionImpl {
         .replace(/\[BLANK_AUDIO\]|<\|nospeech\|>/gi, "")
         .replace(/\s+/g, " ")
         .trim();
-      const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
-      if (!cleaned || cleaned.length < 20 || words.length < 4) {
+const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+      if (!cleaned || (cleaned.length < 14 && words.length < 3)) {
         // Not confident enough; consume buffer tail and skip
         const keep = Math.floor(16000 * 0.5);
         this.buffer16k = [concat.subarray(Math.max(0, concat.length - keep))];
