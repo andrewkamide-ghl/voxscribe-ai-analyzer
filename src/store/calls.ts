@@ -41,6 +41,21 @@ function notify() {
   });
 }
 
+// Live call (in-memory) state
+export type LiveCall = { name: string; startedAt: string };
+type LiveListener = (live: LiveCall | null) => void;
+let live: LiveCall | null = null;
+const liveListeners = new Set<LiveListener>();
+function notifyLive() {
+  liveListeners.forEach((fn) => {
+    try {
+      fn(live);
+    } catch {
+      // noop
+    }
+  });
+}
+
 export const callsStore = {
   getAll(): Call[] {
     return read();
@@ -76,5 +91,24 @@ export const callsStore = {
     const next = read().filter((c) => c.id !== id);
     write(next);
     notify();
+  },
+  // Live helpers
+  getLive(): LiveCall | null {
+    return live;
+  },
+  startLive(name = "Live Call") {
+    live = { name, startedAt: new Date().toISOString() };
+    notifyLive();
+  },
+  endLive() {
+    live = null;
+    notifyLive();
+  },
+  subscribeLive(listener: (live: LiveCall | null) => void) {
+    liveListeners.add(listener);
+    try { listener(live); } catch {}
+    return () => {
+      liveListeners.delete(listener);
+    };
   },
 };

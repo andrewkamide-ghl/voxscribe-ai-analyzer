@@ -152,6 +152,22 @@ const Index = () => {
   // Unique speakers from transcript (exclude Moderator)
   const uniqueSpeakers = useMemo(() => Array.from(new Set(segments.map((s) => s.speaker))).filter((n) => n && n !== "Moderator"), [segments]);
 
+  // Live call state sync
+  useEffect(() => {
+    if (connected) {
+      callsStore.startLive("Live Call");
+    } else {
+      callsStore.endLive();
+    }
+  }, [connected]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      callsStore.endLive();
+    };
+  }, []);
+
   function saveCall() {
     const name = `Call ${new Date().toLocaleString()}`;
     const time = new Date().toISOString();

@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
-import { Home, PhoneCall, Microscope, Settings, LogOut, User2, PanelLeft, Users } from "lucide-react"
+import { Home, PhoneCall, Microscope, Settings, LogOut, User2, PanelLeft, Users, CircleDot, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -18,8 +19,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Card } from "@/components/ui/card"
 
 import { useI18n } from "@/store/i18n";
+import { callsStore } from "@/store/calls";
 
 const items = [
   { title: "Home", url: "/", icon: Home },
@@ -56,9 +59,11 @@ export function AppSidebar() {
         return url
     }
   }
+const [live, setLive] = useState<{ name: string; startedAt: string } | null>(null)
+useEffect(() => callsStore.subscribeLive(setLive), [])
 
-  return (
-    <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
+return (
+  <Sidebar style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "4rem" } as any} collapsible="icon">
       <SidebarHeader>
         <div className={collapsed ? "flex flex-col items-center gap-2 px-2 py-2" : "flex items-center justify-between gap-2 px-2 py-1.5"}>
           <div className="flex items-center gap-2">
@@ -83,8 +88,31 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{t("nav.group")}</SidebarGroupLabel>
           <SidebarGroupContent>
+            {live && (
+              !collapsed ? (
+                <NavLink to="/calls/live" className="block">
+                  <Card className="m-2 mb-1 shadow-sm transition-shadow hover:shadow">
+                    <div className="flex items-center justify-between p-3">
+                      <div className="flex items-center gap-3">
+                        <CircleDot className="h-4 w-4 text-destructive animate-pulse" />
+                        <div className="text-sm">
+                          <div className="font-medium">Live Call</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[10rem]">{live.name}</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Card>
+                </NavLink>
+              ) : (
+                <NavLink to="/calls/live" className="block m-2 mb-1">
+                  <div className="size-10 rounded-md border flex items-center justify-center">
+                    <CircleDot className="h-4 w-4 text-destructive animate-pulse" />
+                  </div>
+                </NavLink>
+              )
+            )}
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
