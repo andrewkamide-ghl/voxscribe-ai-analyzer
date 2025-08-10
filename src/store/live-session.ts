@@ -145,9 +145,9 @@ let speechOnSince = 0;
 let speechOffSince = 0;
 
 // Utterance grouping configuration
-const SILENCE_MS = 1200; // end-of-speech silence window (increased to avoid mid-speech splits)
-const MAX_UTTER_MS = 20000; // force finalize after this duration
-const INACTIVITY_FINALIZE_MS = 1800; // finalize if no new text arrives (inactivity)
+const SILENCE_MS = 1800; // end-of-speech silence window (more deliberate end)
+const MAX_UTTER_MS = 30000; // force finalize after this duration (30s)
+const INACTIVITY_FINALIZE_MS = 1800; // minimum inactivity before considering finalize
 const MIN_CHARS = 18; // guardrail: avoid tiny segments
 const MIN_WORDS = 4;
 const SILENCE_RMS = 0.006;
@@ -159,7 +159,8 @@ const SPEECH_RMS_OFF = 0.008;
 const SPEECH_PEAK_ON = 0.06;
 const SPEECH_PEAK_OFF = 0.035;
 const SPEECH_ON_HOLD_MS = 150;
-const SPEECH_OFF_HOLD_MS = 400;
+const SPEECH_OFF_HOLD_MS = 900; // more stable OFF hold
+const FINALIZE_ARM_MS = 350; // debounce before finalizing once conditions met
 
 type PendingUtterance = {
   speaker: string;
@@ -171,6 +172,7 @@ type PendingUtterance = {
 
 let pending: PendingUtterance | null = null;
 let lastVoiceAt = 0;
+let finalizeArmedAt = 0;
 
 function overlapAppend(a: string, b: string): string {
   const A = (a || "").trim();
@@ -276,20 +278,25 @@ function evaluatePending() {
   const dur = now - pending.startedAt;
   if (dur >= MAX_UTTER_MS) {
     finalizePending(true, "max_duration_tick");
+    finalizeArmedAt = 0;
     return;
   }
-  const speaking = speakingStable;
   const sinceLastText = now - pending.lastTextAt;
   const inactivityMs = Math.max(
     INACTIVITY_FINALIZE_MS,
     pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
   );
-  if (!speaking && sinceLastText >= inactivityMs) {
-    finalizePending(true, "inactivity_tick");
-    return;
-  }
-  if (!speaking && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
-    finalizePending(false, "silence_tick");
+  const silenceOk = !speakingStable && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS;
+  const inactivityOk = !speakingStable && sinceLastText >= inactivityMs;
+
+  if (silenceOk && inactivityOk) {
+    if (!finalizeArmedAt) finalizeArmedAt = now;
+    else if (now - finalizeArmedAt >= FINALIZE_ARM_MS) {
+      finalizePending(false, "armed_both_tick");
+      finalizeArmedAt = 0;
+    }
+  } else {
+    finalizeArmedAt = 0;
   }
 }
 
@@ -311,9 +318,10 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
   currentMode = options?.mode ?? 'real';
   sampleIndex = 0;
 
-  // reset transient state for fresh utterance detection
-  pending = null;
-  lastVoiceAt = 0;
+// reset transient state for fresh utterance detection
+pending = null;
+lastVoiceAt = 0;
+finalizeArmedAt = 0;
 
   const nowIso = new Date().toISOString();
   const reset = !!options?.reset;
@@ -336,7 +344,7 @@ connect(name = "Live Call", options?: { mode?: 'demo' | 'real'; systemAudio?: bo
     audioSession.start({
       mic: true,
       system: !!options?.systemAudio,
-      chunkSec: 4,
+      chunkSec: 3,
 onText: (text) => {
         const t = (text || "").trim();
         if (!t) return;
@@ -366,47 +374,58 @@ onText: (text) => {
         lastGated = !!gated;
         lastLevelAt = now;
 
-        // Hysteresis-based speaking detection
-        const aboveOn = (smRMS >= SPEECH_RMS_ON) || (smPeak >= SPEECH_PEAK_ON);
-        const belowOff = (smRMS <= SPEECH_RMS_OFF) && (smPeak <= SPEECH_PEAK_OFF);
-        if (aboveOn) {
-          if (!speechOnSince) speechOnSince = now;
-          speechOffSince = 0;
-          if (!speakingStable && now - speechOnSince >= SPEECH_ON_HOLD_MS) {
-            speakingStable = true;
-          }
-        } else if (belowOff) {
-          if (!speechOffSince) speechOffSince = now;
-          speechOnSince = 0;
-          if (speakingStable && now - speechOffSince >= SPEECH_OFF_HOLD_MS) {
-            speakingStable = false;
-          }
-        } else {
-          // between thresholds: keep current holds but don't toggle
-        }
+// Hysteresis-based speaking detection with impulse guard
+const ratio = smPeak / (smRMS + 1e-6);
+const isImpulse = ratio > 12 && smRMS < SILENCE_RMS * 1.1;
+const aboveOn = (smRMS >= SPEECH_RMS_ON) || ((smPeak >= SPEECH_PEAK_ON) && smRMS >= SILENCE_RMS);
+const belowOff = (smRMS <= SPEECH_RMS_OFF) && (smPeak <= SPEECH_PEAK_OFF);
+if (!isImpulse) {
+  if (aboveOn) {
+    if (!speechOnSince) speechOnSince = now;
+    speechOffSince = 0;
+    if (!speakingStable && now - speechOnSince >= SPEECH_ON_HOLD_MS) {
+      speakingStable = true;
+    }
+  } else if (belowOff) {
+    if (!speechOffSince) speechOffSince = now;
+    speechOnSince = 0;
+    if (speakingStable && now - speechOffSince >= SPEECH_OFF_HOLD_MS) {
+      speakingStable = false;
+    }
+  } else {
+    // between thresholds: keep holds
+  }
+}
 
-        if (speakingStable) {
-          lastVoiceAt = now;
-        }
+if (speakingStable && !isImpulse) {
+  lastVoiceAt = now;
+}
 
-        if (pending) {
-          const dur = now - pending.startedAt;
-          if (dur >= MAX_UTTER_MS) {
-            finalizePending(true, "max_duration");
-            return;
-          }
-          const sinceLastText = now - pending.lastTextAt;
-          const inactivityMs = Math.max(
-            INACTIVITY_FINALIZE_MS,
-            pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
-          );
-          if (!speakingStable && sinceLastText >= inactivityMs) {
-            finalizePending(true, "inactivity");
-            return;
-          }
-          if (!speakingStable && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS) {
-            finalizePending(false, "silence");
-          }
+if (pending) {
+  const dur = now - pending.startedAt;
+  if (dur >= MAX_UTTER_MS) {
+    finalizePending(true, "max_duration");
+    finalizeArmedAt = 0;
+    return;
+  }
+  const sinceLastText = now - pending.lastTextAt;
+  const inactivityMs = Math.max(
+    INACTIVITY_FINALIZE_MS,
+    pending.avgOnTextMs ? Math.min(INACTIVITY_FINALIZE_MS * 2.5, pending.avgOnTextMs * 3) : INACTIVITY_FINALIZE_MS
+  );
+  const silenceOk = !speakingStable && lastVoiceAt && now - lastVoiceAt >= SILENCE_MS;
+  const inactivityOk = !speakingStable && sinceLastText >= inactivityMs;
+
+  if (silenceOk && inactivityOk) {
+    if (!finalizeArmedAt) finalizeArmedAt = now;
+    else if (now - finalizeArmedAt >= FINALIZE_ARM_MS) {
+      finalizePending(false, "armed_both");
+      finalizeArmedAt = 0;
+    }
+  } else {
+    finalizeArmedAt = 0;
+  }
+}
         }
       },
     });
