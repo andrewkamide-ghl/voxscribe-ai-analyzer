@@ -14,6 +14,7 @@ import { useTheme } from "next-themes";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/store/i18n";
 import { StorageProvider, useStorageSettings } from "@/store/storage";
+import BYOKManager from "@/components/BYOKManager";
 
 const TABS = ["account", "billing", "ai", "storage"] as const;
 type TabKey = typeof TABS[number];
@@ -41,7 +42,6 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
-// OpenAI keys are now managed server-side via Supabase secrets
   // Storage settings
   const { connections, defaultProvider, connect, disconnect, setDefault } = useStorageSettings();
   const isConnected = (p: StorageProvider) => Boolean(connections[p]);
@@ -182,17 +182,23 @@ const Settings = () => {
             </Card>
           )}
 
+          {tab === "ai" && (
             <div className="space-y-4">
               <Card className="p-4 space-y-3">
                 <h2 className="text-lg font-semibold">AI Settings</h2>
                 <p className="text-sm text-muted-foreground">
-                  OpenAI access is securely managed on the server via Supabase Secrets. No API keys are stored in your browser.
+                  OpenAI access is securely managed on the server via Supabase Secrets or your personal key.
                 </p>
               </Card>
 
               <Card className="p-4 space-y-4">
                 <h2 className="text-lg font-semibold">Default Model</h2>
                 <AIModelSelector />
+              </Card>
+
+              <Card className="p-4 space-y-4">
+                <h2 className="text-lg font-semibold">Bring Your Own OpenAI Key</h2>
+                <BYOKManager />
               </Card>
 
               <Card className="p-4 space-y-4">
@@ -203,6 +209,7 @@ const Settings = () => {
                 <CrawlPanel />
               </Card>
             </div>
+          )}
 
           {tab === "storage" && (
             <div className="space-y-4">
