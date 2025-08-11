@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 function getInstallationId() {
   let id = localStorage.getItem('installation_id');
@@ -17,12 +17,19 @@ export default function ApiAccessPanel() {
   const [installationId, setInstallationId] = useState<string>('');
 
   useEffect(() => setInstallationId(getInstallationId()), []);
+  const supaReady = Boolean(getSupabase());
 
   async function generate() {
-    const { data, error } = await supabase.functions.invoke<{ apiKey: string; prefix: string; installation_id: string }>('apikeys-generate', {
+    const client = getSupabase();
+    if (!client) {
+      toast({ title: 'Supabase not configured', description: 'Connect Supabase (green button) to enable API functions.' });
+      return;
+    }
+    const { data, error } = await client.functions.invoke<{ apiKey: string; prefix: string; installation_id: string }>('apikeys-generate', {
       body: { name: 'default' },
       headers: { 'X-Installation-Id': getInstallationId() }
     });
+
     if (!error && data?.apiKey) {
       setApiKey(data.apiKey);
       localStorage.setItem('installation_id', data.installation_id);
@@ -33,7 +40,12 @@ export default function ApiAccessPanel() {
   }
 
   async function revoke() {
-    const { error } = await supabase.functions.invoke<{ ok: boolean }>('apikeys-revoke', {
+    const client = getSupabase();
+    if (!client) {
+      toast({ title: 'Supabase not configured', description: 'Connect Supabase (green button) to enable API functions.' });
+      return;
+    }
+    const { error } = await client.functions.invoke<{ ok: boolean }>('apikeys-revoke', {
       headers: { 'X-Installation-Id': getInstallationId() }
     });
     if (error) toast({ title: 'Failed', description: error.message });
@@ -46,6 +58,11 @@ export default function ApiAccessPanel() {
   return (
     <Card className="p-0 border-0">
       <div className="space-y-3">
+        {!supaReady && (
+          <div className="p-3 border rounded-md bg-destructive/10 text-destructive-foreground text-sm">
+            Supabase not connected. Use the green Supabase button to connect your project.
+          </div>
+        )}
         <h2 className="text-lg font-semibold">API Access (for GPT Actions)</h2>
         <p className="text-sm text-muted-foreground">
           Generate an API key to call <code>/v1-crawl</code> from your own GPT Action.
