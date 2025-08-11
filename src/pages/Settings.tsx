@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import AIModelSelector from "@/components/AIModelSelector";
 import ApiAccessPanel from "@/components/ApiAccessPanel";
 import CrawlPanel from "@/components/CrawlPanel";
-import { clearOpenAIKey, getOpenAIKey, setOpenAIKey } from "@/store/ai";
+// Removed browser OpenAI key storage imports
 import { useTheme } from "next-themes";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/store/i18n";
@@ -41,21 +41,7 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
-  // AI Assistants state
-  const [openaiKey, setKey] = useState<string>(() => getOpenAIKey() || "");
-  const connected = useMemo(() => Boolean(getOpenAIKey()), []);
-
-  const saveOpenAI = () => {
-    if (!openaiKey) return;
-    setOpenAIKey(openaiKey);
-    toast({ title: t("actions.connected"), description: t("ai.connectOpenAI") + " ✓" });
-  };
-  const disconnectOpenAI = () => {
-    clearOpenAIKey();
-    setKey("");
-    toast({ title: t("actions.disconnect"), description: t("ai.connectOpenAI") + " ✕" });
-  };
-
+// OpenAI keys are now managed server-side via Supabase secrets
   // Storage settings
   const { connections, defaultProvider, connect, disconnect, setDefault } = useStorageSettings();
   const isConnected = (p: StorageProvider) => Boolean(connections[p]);
@@ -196,28 +182,16 @@ const Settings = () => {
             </Card>
           )}
 
-          {tab === "ai" && (
             <div className="space-y-4">
-              <Card className="p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">{t("ai.connectOpenAI")}</h2>
-                  <span className="text-xs text-muted-foreground">{connected ? t("actions.connected") : t("actions.notConnected")}</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <div className="md:col-span-2 space-y-1">
-                    <Label htmlFor="openai">{t("ai.apiKey")}</Label>
-                    <Input id="openai" value={openaiKey} onChange={(e) => setKey(e.target.value)} placeholder="sk-..." />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <Button type="button" className="w-full" onClick={saveOpenAI}>{t("actions.save")}</Button>
-                    <Button type="button" variant="outline" className="w-full" onClick={disconnectOpenAI}>{t("actions.disconnect")}</Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">{t("ai.tip")}</p>
+              <Card className="p-4 space-y-3">
+                <h2 className="text-lg font-semibold">AI Settings</h2>
+                <p className="text-sm text-muted-foreground">
+                  OpenAI access is securely managed on the server via Supabase Secrets. No API keys are stored in your browser.
+                </p>
               </Card>
 
               <Card className="p-4 space-y-4">
-                <h2 className="text-lg font-semibold">{t("ai.defaultModel")}</h2>
+                <h2 className="text-lg font-semibold">Default Model</h2>
                 <AIModelSelector />
               </Card>
 
@@ -229,7 +203,6 @@ const Settings = () => {
                 <CrawlPanel />
               </Card>
             </div>
-          )}
 
           {tab === "storage" && (
             <div className="space-y-4">

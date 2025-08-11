@@ -293,7 +293,7 @@ setUnreadIds((prevSet) => {
       console.error(error);
       toast({
         title: "Fact check failed",
-        description: "Add your OpenAI API key in Settings and try again.",
+        description: "AI request failed. Please try again later.",
         variant: "destructive",
       });
     } finally {

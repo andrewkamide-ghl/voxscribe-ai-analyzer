@@ -46,12 +46,12 @@ const remove = (id: string) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="p-4">
               <h2 className="text-lg font-semibold mb-2">Analyze URLs</h2>
-              <p className="text-sm text-muted-foreground mb-3">Use ChatGPT to analyze website content. OpenAI keys are stored locally.</p>
+              <p className="text-sm text-muted-foreground mb-3">Use ChatGPT to analyze website content. Requests are routed securely via our server.</p>
               <AnalyzeUrlForm />
             </Card>
             <Card className="p-4">
               <h2 className="text-lg font-semibold mb-2">Ask the Web</h2>
-              <p className="text-sm text-muted-foreground mb-3">Ask questions and get AI-powered answers. OpenAI keys are stored locally.</p>
+              <p className="text-sm text-muted-foreground mb-3">Ask questions and get AI-powered answers. Requests are routed securely via our server.</p>
               <AskWebForm />
             </Card>
           </div>
