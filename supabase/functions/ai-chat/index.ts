@@ -43,8 +43,7 @@ Deno.serve(async (req) => {
     });
 
     if (!r.ok) {
-      const err = await r.text();
-      return json({ error: 'OpenAI error', detail: err }, 502);
+      return json({ error: 'Upstream AI request failed' }, 502);
     }
 
     const data = await r.json();

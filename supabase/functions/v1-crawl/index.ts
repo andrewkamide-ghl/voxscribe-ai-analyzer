@@ -52,8 +52,7 @@ Deno.serve(async (req) => {
     });
 
     if (!r.ok) {
-      const err = await r.text();
-      return json({ error: 'OpenAI error', detail: err }, 502);
+      return json({ error: 'Upstream AI request failed' }, 502);
     }
 
     const data = await r.json();
@@ -64,7 +63,12 @@ Deno.serve(async (req) => {
 
     // Hard filter to domain
     const pages = Array.isArray(parsed?.pages) ? parsed.pages.filter((p: any) => {
-      try { return new URL(p?.url).hostname.endsWith(domain); } catch { return false; }
+      try {
+        const host = new URL(p?.url).hostname.toLowerCase();
+        return host === domain || host.endsWith('.' + domain);
+      } catch {
+        return false;
+      }
     }) : [];
 
     return json({ pages }, 200);
