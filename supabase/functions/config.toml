@@ -1,0 +1,14 @@
+[functions]
+verify_jwt = true
+
+[functions.v1-crawl]
+verify_jwt = false
+
+[functions.openapi]
+verify_jwt = false
+
+[functions.apikeys-generate]
+verify_jwt = false
+
+[functions.apikeys-revoke]
+verify_jwt = false

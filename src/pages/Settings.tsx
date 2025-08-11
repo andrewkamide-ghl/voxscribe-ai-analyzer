@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useMemo, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import AIModelSelector from "@/components/AIModelSelector";
+import ApiAccessPanel from "@/components/ApiAccessPanel";
+import CrawlPanel from "@/components/CrawlPanel";
 import { clearOpenAIKey, getOpenAIKey, setOpenAIKey } from "@/store/ai";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "react-router-dom";
@@ -217,6 +219,14 @@ const Settings = () => {
               <Card className="p-4 space-y-4">
                 <h2 className="text-lg font-semibold">{t("ai.defaultModel")}</h2>
                 <AIModelSelector />
+              </Card>
+
+              <Card className="p-4 space-y-4">
+                <ApiAccessPanel />
+              </Card>
+
+              <Card className="p-4 space-y-4">
+                <CrawlPanel />
               </Card>
             </div>
           )}
