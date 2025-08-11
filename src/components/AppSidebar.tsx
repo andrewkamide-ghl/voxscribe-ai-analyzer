@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import { Home, PhoneCall, Microscope, Settings, LogOut, User2, PanelLeft, Users, CircleDot, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/store/auth";
+
 
 import {
   Sidebar,
@@ -38,6 +40,7 @@ export function AppSidebar() {
   const location = useLocation()
   const currentPath = location.pathname
   const { t } = useI18n()
+  const { user } = useAuth();
 
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -146,8 +149,8 @@ return (
                 </Avatar>
                 {!collapsed && (
                   <div className="grid text-left">
-                    <span className="text-sm font-medium leading-none">John Doe</span>
-                    <span className="text-xs text-muted-foreground">john@example.com</span>
+                    <span className="text-sm font-medium leading-none">{user?.email ?? "Account"}</span>
+                    <span className="text-xs text-muted-foreground">{user?.email ? "Signed in" : ""}</span>
                   </div>
                 )}
               </button>
@@ -156,7 +159,13 @@ return (
               <DropdownMenuItem onClick={() => toast.message(t("profile.edit"), { description: t("profile.editorComingSoon") })}>
                 {t("profile.edit")}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.success(t("actions.loggedOut"))}>
+              <DropdownMenuItem onClick={() => {
+                fetch("/", { method: "HEAD" });
+                import("@/integrations/supabase/client").then(async ({ supabase }) => {
+                  await supabase.auth.signOut();
+                  toast.success(t("actions.loggedOut"));
+                });
+              }}>
                 <LogOut className="mr-2 h-4 w-4" /> {t("actions.logout")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -166,3 +175,4 @@ return (
     </Sidebar>
   )
 }
+
