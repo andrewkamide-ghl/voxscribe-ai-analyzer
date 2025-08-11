@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { getSupabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 type Page = { url: string; title: string; summary: string; key_points: string[]; actions: string[] };
 
@@ -17,13 +17,7 @@ export default function CrawlPanel() {
 
   async function run() {
     setLoading(true);
-    const client = getSupabase();
-    if (!client) {
-      toast({ title: 'Supabase not configured', description: 'Connect Supabase (green button) to enable API functions.' });
-      setLoading(false);
-      return;
-    }
-    const { data, error } = await client.functions.invoke<{ pages: Page[] }>('v1-crawl', {
+    const { data, error } = await supabase.functions.invoke<{ pages: Page[] }>('v1-crawl', {
       headers: { 'X-Api-Key': apiKey },
       body: { domain, goal, max_items: 10 }
     });
