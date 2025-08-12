@@ -1,5 +1,5 @@
 
-import { ok, json, parseUserIdFromAuth } from '../._shared/utils.ts';
+import { ok, json, parseUserIdFromAuth } from '../_shared/utils.ts';
 import { svc } from '../_shared/db.ts';
 
 Deno.serve(async (req) => {
