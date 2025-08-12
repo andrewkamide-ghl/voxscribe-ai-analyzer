@@ -53,6 +53,18 @@ export default function AIModelSelector({ compact = false }: { compact?: boolean
     return () => { cancelled = true };
   }, []);
 
+  // Live updates from ProviderKeyManager (no refresh)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ provider: AIProvider; connected: boolean }>;
+      const detail = ce.detail as any;
+      if (!detail?.provider) return;
+      setConnected((prev) => ({ ...prev, [detail.provider]: !!detail.connected }));
+    };
+    window.addEventListener('ai-credentials-changed', handler as EventListener);
+    return () => window.removeEventListener('ai-credentials-changed', handler as EventListener);
+  }, []);
+
   const connectedProviders = useMemo(() => (PROVIDERS.map((p) => p.value) as AIProvider[]).filter((p) => connected[p]), [connected]);
 
   const options = useMemo(() => {

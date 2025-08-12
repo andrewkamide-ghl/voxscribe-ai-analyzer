@@ -11,7 +11,7 @@ function getInstallationId() {
   return id;
 }
 
-export default function ApiAccessPanel() {
+export default function ApiAccessPanel({ embed = false }: { embed?: boolean }) {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [installationId, setInstallationId] = useState<string>('');
@@ -45,33 +45,39 @@ export default function ApiAccessPanel() {
     }
   }
 
-  return (
-    <Card className="p-0 border-0">
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">API Access (for GPT Actions)</h2>
-        <p className="text-sm text-muted-foreground">
-          Generate an API key to call <code>/v1-crawl</code> from your own GPT Action.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={generate}>Generate API Key</Button>
-          <Button type="button" variant="outline" onClick={revoke}>Revoke</Button>
-        </div>
-        {apiKey && (
-          <div className="p-3 border rounded-md bg-muted/30">
-            <div className="font-mono text-sm break-all">{apiKey}</div>
-            <div className="text-xs text-muted-foreground mt-1">Copy now — shown only once.</div>
-          </div>
-        )}
-        <div className="text-xs text-muted-foreground">Installation ID: <span className="font-mono">{installationId}</span></div>
-        <details className="mt-2">
-          <summary className="cursor-pointer text-sm">Connect a GPT Action</summary>
-          <ol className="list-decimal pl-5 text-sm mt-2 space-y-1">
-            <li>ChatGPT → Builder → <b>Actions</b> → <b>Add Action</b> → <b>Import OpenAPI</b>.</li>
-            <li>OpenAPI URL: <code>https://&lt;your-project&gt;.functions.supabase.co/openapi</code></li>
-            <li>Auth: <b>API Key</b>, header name <code>X-Api-Key</code>.</li>
-          </ol>
-        </details>
+  const Content = (
+    <div className="space-y-3">
+      <h3 className="text-base font-semibold">API Actions (for ChatGPT)</h3>
+      <p className="text-sm text-muted-foreground">
+        Generate an API key to call <code>/v1-crawl</code> from your own GPT Action.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" onClick={generate}>Generate API Key</Button>
+        <Button type="button" variant="outline" onClick={revoke}>Revoke</Button>
       </div>
+      {apiKey && (
+        <div className="p-3 border rounded-md bg-muted/30">
+          <div className="font-mono text-sm break-all">{apiKey}</div>
+          <div className="text-xs text-muted-foreground mt-1">Copy now — shown only once.</div>
+        </div>
+      )}
+      <div className="text-xs text-muted-foreground">Installation ID: <span className="font-mono">{installationId}</span></div>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-sm">Connect a GPT Action</summary>
+        <ol className="list-decimal pl-5 text-sm mt-2 space-y-1">
+          <li>ChatGPT → Builder → <b>Actions</b> → <b>Add Action</b> → <b>Import OpenAPI</b>.</li>
+          <li>OpenAPI URL: <code>https://&lt;your-project&gt;.functions.supabase.co/openapi</code></li>
+          <li>Auth: <b>API Key</b>, header name <code>X-Api-Key</code>.</li>
+        </ol>
+      </details>
+    </div>
+  );
+
+  if (embed) return Content;
+
+  return (
+    <Card className="p-4">
+      {Content}
     </Card>
   );
 }

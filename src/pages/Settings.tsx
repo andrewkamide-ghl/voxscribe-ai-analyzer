@@ -185,16 +185,12 @@ const [tab, setTab] = useState<TabKey>(initialTab);
               </Card>
 
               <Card className="p-4 space-y-4">
+                <CrawlPanel />
+              </Card>
+
+              <Card className="p-4 space-y-4">
                 <h2 className="text-lg font-semibold">AI Assistant Connections</h2>
                 <AIConnectionsAccordion />
-              </Card>
-
-              <Card className="p-4 space-y-4">
-                <ApiAccessPanel />
-              </Card>
-
-              <Card className="p-4 space-y-4">
-                <CrawlPanel />
               </Card>
             </div>
           )}

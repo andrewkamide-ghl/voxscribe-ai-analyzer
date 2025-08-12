@@ -48,7 +48,9 @@ export default function ProviderKeyManager({ provider, label, docsUrl, onStatusC
     if (!error) {
       const lf = data?.credential?.last_four ?? null;
       setLastFour(lf);
-      onStatusChange?.(Boolean(lf));
+      const isConn = Boolean(lf);
+      onStatusChange?.(isConn);
+      window.dispatchEvent(new CustomEvent('ai-credentials-changed', { detail: { provider, connected: isConn } }));
     } else {
       console.error("ai-keys-get error", error);
     }
@@ -70,7 +72,9 @@ export default function ProviderKeyManager({ provider, label, docsUrl, onStatusC
       setApiKey("");
       const lf = data.last_four || null;
       setLastFour(lf);
-      onStatusChange?.(Boolean(lf));
+      const isConn = Boolean(lf);
+      onStatusChange?.(isConn);
+      window.dispatchEvent(new CustomEvent('ai-credentials-changed', { detail: { provider, connected: isConn } }));
       toast({ title: "Saved", description: "Your key is encrypted and stored securely." });
     }
   }
@@ -85,6 +89,7 @@ export default function ProviderKeyManager({ provider, label, docsUrl, onStatusC
     } else {
       setLastFour(null);
       onStatusChange?.(false);
+      window.dispatchEvent(new CustomEvent('ai-credentials-changed', { detail: { provider, connected: false } }));
       toast({ title: "Removed", description: "Your key has been deleted." });
     }
   }

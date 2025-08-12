@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ProviderKeyManager from "@/components/ProviderKeyManager";
+import ApiAccessPanel from "@/components/ApiAccessPanel";
 import { Badge } from "@/components/ui/badge";
 import type { AIProvider } from "@/store/ai";
 import { supabase } from "@/integrations/supabase/client";
-
 const PROVIDER_META: { id: AIProvider; label: string; docsUrl: string }[] = [
   { id: "openai", label: "ChatGPT", docsUrl: "https://platform.openai.com/api-keys" },
   { id: "xai", label: "Grok", docsUrl: "https://developer.x.ai/docs/getting-started#api-keys" },
@@ -44,24 +44,32 @@ export default function AIConnectionsAccordion() {
   }, []);
 
   return (
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion type="single" collapsible className="w-full space-y-2">
       {PROVIDER_META.map((p) => (
-        <AccordionItem key={p.id} value={p.id}>
-          <AccordionTrigger>
-            <div className="flex w-full items-center justify-between pr-4">
-              <span className="text-base font-medium">{p.label}</span>
-              {connected[p.id] && <Badge variant="success" className="ml-2">Connected</Badge>}
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <ProviderKeyManager
-              provider={p.id}
-              label={p.label}
-              docsUrl={p.docsUrl}
-              onStatusChange={(isConn) => setConnected((prev) => ({ ...prev, [p.id]: isConn }))}
-            />
-          </AccordionContent>
-        </AccordionItem>
+        <div key={p.id} className="rounded-lg border">
+          <AccordionItem value={p.id} className="[&>h3]:m-0">
+            <AccordionTrigger className="px-4">
+              <div className="flex w-full items-center justify-between pr-0">
+                <span className="text-base font-medium">{p.label}</span>
+                {connected[p.id] && <Badge variant="success" className="ml-2">Connected</Badge>}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <ProviderKeyManager
+                provider={p.id}
+                label={p.label}
+                docsUrl={p.docsUrl}
+                onStatusChange={(isConn) => setConnected((prev) => ({ ...prev, [p.id]: isConn }))}
+              />
+
+              {p.id === 'openai' && (
+                <div className="mt-6">
+                  <ApiAccessPanel embed />
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </div>
       ))}
     </Accordion>
   );
