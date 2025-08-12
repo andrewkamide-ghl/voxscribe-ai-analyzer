@@ -15,5 +15,6 @@ export const MODELS: Record<AIProvider, ModelOption[]> = {
     { value: "o4-mini-2025-04-16", label: "o4-mini (reasoning, 2025-04-16)" },
     { value: "o3-2025-04-16", label: "o3 (reasoning, 2025-04-16)" },
     { value: "gpt-4.1-mini", label: "GPT-4.1 mini (legacy)" },
+    { value: "__custom__", label: "Custom model…" },
   ],
 };
