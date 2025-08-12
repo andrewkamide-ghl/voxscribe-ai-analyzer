@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
+const FUNCTIONS_ORIGIN = "https://aocsadbccaximkoevssw.functions.supabase.co";
+
 function useAuthSession() {
   const [session, setSession] = useState<any>(null);
   useEffect(() => {
@@ -47,7 +49,34 @@ export default function IntegrationsPanel() {
       toast({ title: 'Google Connect Failed', description: error?.message || 'Unable to start Google OAuth' });
       return;
     }
-    try { (window.top || window).location.href = data.url; } catch { window.location.href = data.url; }
+    const w = 600, h = 700;
+    const y = Math.max(0, (window.outerHeight - h) / 2 + (window.screenY || 0));
+    const x = Math.max(0, (window.outerWidth - w) / 2 + (window.screenX || 0));
+    const popup = window.open(data.url, 'oauth-google', `width=${w},height=${h},left=${x},top=${y},resizable,scrollbars=yes`);
+    if (!popup) {
+      try { (window.top || window).location.href = data.url; } catch { window.location.href = data.url; }
+      return;
+    }
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== FUNCTIONS_ORIGIN) return;
+      const d: any = e.data;
+      if (!d || d.source !== 'oauth-bridge' || d.provider !== 'google') return;
+      if (d.status === 'connected') {
+        toast({ title: 'Google Drive', description: 'Connected successfully' });
+      } else {
+        toast({ title: 'Google Connect Failed', description: d.reason || 'Authorization was not completed' });
+      }
+      refresh();
+      window.removeEventListener('message', onMessage);
+      try { popup.close(); } catch {}
+    };
+    window.addEventListener('message', onMessage);
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        window.removeEventListener('message', onMessage);
+        clearInterval(timer);
+      }
+    }, 500);
   }
 
   async function connectDropbox() {
@@ -58,7 +87,34 @@ export default function IntegrationsPanel() {
       toast({ title: 'Dropbox Connect Failed', description: error?.message || 'Unable to start Dropbox OAuth' });
       return;
     }
-    try { (window.top || window).location.href = data.url; } catch { window.location.href = data.url; }
+    const w = 600, h = 700;
+    const y = Math.max(0, (window.outerHeight - h) / 2 + (window.screenY || 0));
+    const x = Math.max(0, (window.outerWidth - w) / 2 + (window.screenX || 0));
+    const popup = window.open(data.url, 'oauth-dropbox', `width=${w},height=${h},left=${x},top=${y},resizable,scrollbars=yes`);
+    if (!popup) {
+      try { (window.top || window).location.href = data.url; } catch { window.location.href = data.url; }
+      return;
+    }
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== FUNCTIONS_ORIGIN) return;
+      const d: any = e.data;
+      if (!d || d.source !== 'oauth-bridge' || d.provider !== 'dropbox') return;
+      if (d.status === 'connected') {
+        toast({ title: 'Dropbox', description: 'Connected successfully' });
+      } else {
+        toast({ title: 'Dropbox Connect Failed', description: d.reason || 'Authorization was not completed' });
+      }
+      refresh();
+      window.removeEventListener('message', onMessage);
+      try { popup.close(); } catch {}
+    };
+    window.addEventListener('message', onMessage);
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        window.removeEventListener('message', onMessage);
+        clearInterval(timer);
+      }
+    }, 500);
   }
 
   async function disconnectGoogle() {
