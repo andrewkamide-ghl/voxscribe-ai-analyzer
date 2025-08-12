@@ -32,9 +32,25 @@ function bytesToB64(bytes: Uint8Array) {
   return btoa(bin);
 }
 
+function validateAesKeyB64(keyB64: string): Uint8Array {
+  let keyBytes: Uint8Array;
+  try {
+    keyBytes = b64ToBytes(keyB64);
+  } catch {
+    throw new Error('Invalid BYOK_ENCRYPTION_KEY: not valid base64');
+  }
+  const len = keyBytes.byteLength;
+  if (![16, 24, 32].includes(len)) {
+    throw new Error(
+      'Invalid BYOK_ENCRYPTION_KEY: must be base64 for 128/192/256-bit key (16/24/32 bytes)'
+    );
+  }
+  return keyBytes;
+}
+
 async function importAesKey() {
   const keyB64 = requireEnv('BYOK_ENCRYPTION_KEY');
-  const keyBytes = b64ToBytes(keyB64);
+  const keyBytes = validateAesKeyB64(keyB64);
   return crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
