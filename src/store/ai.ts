@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export type AIProvider = "openai";
+export type AIProvider = "openai" | "anthropic" | "google" | "xai";
 
 export interface AIConfig {
   provider: AIProvider;
@@ -15,12 +15,16 @@ const STORAGE_KEYS = {
 
 export const DEFAULTS: Record<AIProvider, string> = {
   openai: "gpt-4o-mini",
+  anthropic: "claude-3.5-haiku",
+  google: "gemini-1.5-flash",
+  xai: "grok-2-mini",
 };
 
 export function getAIConfig(): AIConfig {
-  const provider: AIProvider = "openai";
+  const storedProvider = localStorage.getItem(STORAGE_KEYS.provider) as AIProvider | null;
+  const provider: AIProvider = storedProvider ?? "openai";
   const storedModel = localStorage.getItem(STORAGE_KEYS.model);
-  const model = storedModel || DEFAULTS.openai;
+  const model = storedModel || DEFAULTS[provider];
   return { provider, model };
 }
 

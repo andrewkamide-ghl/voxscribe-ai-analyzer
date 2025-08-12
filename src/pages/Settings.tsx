@@ -14,10 +14,7 @@ import { useTheme } from "next-themes";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/store/i18n";
 
-import BYOKManager from "@/components/BYOKManager";
-
-
-
+import AIConnectionsAccordion from "@/components/AIConnectionsAccordion";
 const TABS = ["account", "billing", "ai"] as const;
 type TabKey = typeof TABS[number];
 
@@ -182,21 +179,14 @@ const [tab, setTab] = useState<TabKey>(initialTab);
 
           {tab === "ai" && (
             <div className="space-y-4">
-              <Card className="p-4 space-y-3">
-                <h2 className="text-lg font-semibold">AI Settings</h2>
-                <p className="text-sm text-muted-foreground">
-                  OpenAI access is securely managed on the server via Supabase Secrets or your personal key.
-                </p>
-              </Card>
-
               <Card className="p-4 space-y-4">
                 <h2 className="text-lg font-semibold">Default Model</h2>
                 <AIModelSelector />
               </Card>
 
               <Card className="p-4 space-y-4">
-                <h2 className="text-lg font-semibold">Bring Your Own OpenAI Key</h2>
-                <BYOKManager />
+                <h2 className="text-lg font-semibold">AI Assistant Connections</h2>
+                <AIConnectionsAccordion />
               </Card>
 
               <Card className="p-4 space-y-4">
