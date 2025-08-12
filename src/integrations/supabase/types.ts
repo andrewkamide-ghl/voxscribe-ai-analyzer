@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      connections: {
+        Row: {
+          access_token: string
+          account_id: string | null
+          created_at: string
+          expiry_ts: number | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          scope: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          access_token: string
+          account_id?: string | null
+          created_at?: string
+          expiry_ts?: number | null
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string
+          account_id?: string | null
+          created_at?: string
+          expiry_ts?: number | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      oauth_states: {
+        Row: {
+          code_verifier: string
+          created_at: string
+          provider: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          code_verifier: string
+          created_at?: string
+          provider: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          code_verifier?: string
+          created_at?: string
+          provider?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_ai_credentials: {
         Row: {
           created_at: string

@@ -15,6 +15,7 @@ import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/store/i18n";
 import { StorageProvider, useStorageSettings } from "@/store/storage";
 import BYOKManager from "@/components/BYOKManager";
+import IntegrationsPanel from "@/components/IntegrationsPanel";
 
 const TABS = ["account", "billing", "ai", "storage"] as const;
 type TabKey = typeof TABS[number];
@@ -214,8 +215,12 @@ const Settings = () => {
           {tab === "storage" && (
             <div className="space-y-4">
               <Card className="p-4 space-y-3">
+                <h2 className="text-lg font-semibold">Cloud Integrations</h2>
+                <IntegrationsPanel />
+              </Card>
+              <Card className="p-4 space-y-3">
                 <h2 className="text-lg font-semibold">{t("storage.connect")}</h2>
-                {["google", "dropbox", "icloud"].map((p) => {
+                {["icloud"].map((p) => {
                   const provider = p as StorageProvider;
                   const nameMap: Record<StorageProvider, string> = {
                     google: t("storage.google"),
