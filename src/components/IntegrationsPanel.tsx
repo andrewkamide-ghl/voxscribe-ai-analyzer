@@ -47,7 +47,7 @@ export default function IntegrationsPanel() {
       toast({ title: 'Google Connect Failed', description: error?.message || 'Unable to start Google OAuth' });
       return;
     }
-    window.location.href = data.url;
+    try { (window.top || window).location.href = data.url; } catch { window.location.href = data.url; }
   }
 
   async function connectDropbox() {
@@ -58,7 +58,7 @@ export default function IntegrationsPanel() {
       toast({ title: 'Dropbox Connect Failed', description: error?.message || 'Unable to start Dropbox OAuth' });
       return;
     }
-    window.location.href = data.url;
+    try { (window.top || window).location.href = data.url; } catch { window.location.href = data.url; }
   }
 
   async function disconnectGoogle() {
