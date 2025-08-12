@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 import type { AIProvider } from "@/store/ai";
@@ -21,9 +20,6 @@ export default function ProviderKeyManager({ provider, label, docsUrl, onStatusC
   const [lastFour, setLastFour] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAuthed, setIsAuthed] = useState<boolean>(false);
-
-  const connected = Boolean(lastFour);
-
   useEffect(() => {
     let mounted = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
@@ -102,12 +98,9 @@ export default function ProviderKeyManager({ provider, label, docsUrl, onStatusC
   }
 
   return (
-    <div className="relative space-y-3">
-      {connected && (
-        <Badge className="absolute right-0 top-0">Connected</Badge>
-      )}
+    <div className="space-y-3">
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <h3 className="text-base font-semibold">{label} API Key</h3>
         <TooltipProvider>
           <Tooltip>

@@ -20,12 +20,17 @@ Deno.serve(async (req) => {
 
   try {
     const userId = await getUserId(req);
+    const body = await req.json().catch(() => ({}));
+    const provider = (body?.provider ?? '').toString();
+    const allowed = new Set(['openai', 'anthropic', 'google', 'xai']);
+    if (!allowed.has(provider)) return json({ error: 'Invalid provider' }, 400);
+
     const db = svc();
     const { error } = await db
       .from('user_ai_credentials')
       .delete()
       .eq('user_id', userId)
-      .eq('provider', 'openai');
+      .eq('provider', provider);
 
     if (error) return json({ error: error.message }, 500);
     return json({ ok: true }, 200);
