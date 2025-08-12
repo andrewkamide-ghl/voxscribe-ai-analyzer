@@ -1,3 +1,4 @@
+
 [functions]
 verify_jwt = true
 
@@ -15,3 +16,29 @@ verify_jwt = true
 
 [functions.ai-chat]
 verify_jwt = true
+
+# Google OAuth flow
+[functions.google-oauth-start]
+verify_jwt = true
+
+[functions.google-status]
+verify_jwt = true
+
+[functions.google-disconnect]
+verify_jwt = true
+
+[functions.google-oauth-callback]
+verify_jwt = false
+
+# Dropbox OAuth flow
+[functions.dropbox-oauth-start]
+verify_jwt = true
+
+[functions.dropbox-status]
+verify_jwt = true
+
+[functions.dropbox-disconnect]
+verify_jwt = true
+
+[functions.dropbox-oauth-callback]
+verify_jwt = false

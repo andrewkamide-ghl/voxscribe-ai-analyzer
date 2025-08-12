@@ -45,3 +45,32 @@ export function extractTextFromResponses(data: any): string {
   if (typeof choice === 'string') return choice;
   return '';
 }
+
+// Added: helpers for PKCE + JWT parsing
+
+export function base64url(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+export async function sha256Base64url(input: string) {
+  const data = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return base64url(new Uint8Array(hash));
+}
+
+export function parseUserIdFromAuth(req: Request): string | null {
+  const auth = req.headers.get('authorization') || req.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const token = auth.slice(7);
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.sub || payload.user_id || null;
+  } catch {
+    return null;
+  }
+}
