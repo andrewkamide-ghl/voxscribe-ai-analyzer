@@ -1,5 +1,5 @@
 
-import { json, ok, readJson, requireEnv } from '../_shared/utils.ts';
+import { json, ok, readJson, requireEnv, extractTextFromResponses } from '../_shared/utils.ts';
 import { svc } from '../_shared/db.ts';
 import { createClient } from 'npm:@supabase/supabase-js';
 
@@ -57,6 +57,11 @@ async function getUserOpenAIKey(userId: string | null): Promise<string | null> {
   }
 }
 
+function usesResponsesAPI(model: string) {
+  const m = model.toLowerCase();
+  return m.startsWith('o3') || m.startsWith('o4') || m.startsWith('gpt-4.1');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return ok();
 
@@ -87,21 +92,38 @@ Deno.serve(async (req) => {
     const userKey = await getUserOpenAIKey(userId);
     const openaiKey = userKey || requireEnv('OPENAI_API_KEY');
 
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    const useResponses = usesResponsesAPI(model);
+    const url = useResponses
+      ? 'https://api.openai.com/v1/responses'
+      : 'https://api.openai.com/v1/chat/completions';
+
+    const payload = useResponses
+      ? {
+          model,
+          input: [
+            { role: 'system', content: 'Be precise and concise.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature,
+          max_output_tokens: max_tokens,
+        }
+      : {
+          model,
+          messages: [
+            { role: 'system', content: 'Be precise and concise.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature,
+          max_tokens,
+        };
+
+    const r = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: 'Be precise and concise.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature,
-        max_tokens
-      })
+      body: JSON.stringify(payload),
     });
 
     if (!r.ok) {
@@ -109,7 +131,7 @@ Deno.serve(async (req) => {
     }
 
     const data = await r.json();
-    const generatedText = data?.choices?.[0]?.message?.content ?? '';
+    const generatedText = extractTextFromResponses(data);
 
     return json({
       choices: [
