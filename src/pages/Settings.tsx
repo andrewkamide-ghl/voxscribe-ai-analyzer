@@ -16,6 +16,7 @@ import { useI18n } from "@/store/i18n";
 import { StorageProvider, useStorageSettings } from "@/store/storage";
 import BYOKManager from "@/components/BYOKManager";
 import IntegrationsPanel from "@/components/IntegrationsPanel";
+import { supabase } from "@/integrations/supabase/client";
 
 const TABS = ["account", "billing", "ai", "storage"] as const;
 type TabKey = typeof TABS[number];
@@ -35,6 +36,38 @@ const Settings = () => {
       return next;
     });
   }, [tab, setSearchParams]);
+
+  // Show OAuth result toasts and clean query params
+  useEffect(() => {
+    if (tab !== 'storage') return;
+    const google = searchParams.get('google');
+    const dropbox = searchParams.get('dropbox');
+    const reason = searchParams.get('reason');
+
+    const show = (provider: string, status: string | null) => {
+      if (!status) return;
+      if (status === 'connected') {
+        toast({ title: `${provider} connected` });
+      } else if (status === 'error') {
+        const msg = reason ? `Reason: ${reason}` : 'There was an error completing the connection.';
+        toast({ title: `${provider} connect failed`, description: msg });
+      }
+    };
+    show('Google Drive', google);
+    show('Dropbox', dropbox);
+
+    if (google || dropbox) {
+      setSearchParams((p) => {
+        const next = new URLSearchParams(p);
+        next.delete('google');
+        next.delete('dropbox');
+        next.delete('reason');
+        next.set('tab', 'storage');
+        return next;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // Account forms state
   const [newEmail, setNewEmail] = useState("");

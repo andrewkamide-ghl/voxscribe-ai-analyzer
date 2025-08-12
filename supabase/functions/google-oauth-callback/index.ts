@@ -11,10 +11,12 @@ Deno.serve(async (req) => {
   const appBase = Deno.env.get('APP_BASE_URL') || 'http://localhost:8080';
 
   const headers = new Headers();
+  let reason = '';
 
   try {
     if (!code || !state) {
-      headers.set('Location', `${appBase}/settings?tab=storage&google=error`);
+      reason = 'missing_params';
+      headers.set('Location', `${appBase}/settings?tab=storage&google=error&reason=${reason}`);
       return new Response(null, { status: 302, headers });
     }
 
@@ -24,7 +26,8 @@ Deno.serve(async (req) => {
     const { data: stRows, error: stErr } = await supabase
       .from('oauth_states').select('user_id, code_verifier').eq('state', state).limit(1);
     if (stErr || !stRows?.length) {
-      headers.set('Location', `${appBase}/settings?tab=storage&google=error`);
+      reason = 'invalid_state';
+      headers.set('Location', `${appBase}/settings?tab=storage&google=error&reason=${reason}`);
       return new Response(null, { status: 302, headers });
     }
     const { user_id, code_verifier } = stRows[0];
@@ -44,7 +47,9 @@ Deno.serve(async (req) => {
     });
     const tokens: any = await tokenRes.json();
     if (!tokenRes.ok) {
-      headers.set('Location', `${appBase}/settings?tab=storage&google=error`);
+      reason = `token_exchange_failed`;
+      console.error('google-oauth-callback token error', tokens);
+      headers.set('Location', `${appBase}/settings?tab=storage&google=error&reason=${reason}`);
       return new Response(null, { status: 302, headers });
     }
 
@@ -55,7 +60,9 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${tokens.access_token}` }
       }).then(r => r.json());
       account_id = about?.user?.permissionId || '';
-    } catch {}
+    } catch (e) {
+      console.warn('google-oauth-callback about warning', e);
+    }
 
     const expiry_ts = tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null;
 
@@ -73,11 +80,18 @@ Deno.serve(async (req) => {
     // Clean used state
     await supabase.from('oauth_states').delete().eq('state', state);
 
-    headers.set('Location', upErr ? `${appBase}/settings?tab=storage&google=error`
-                                  : `${appBase}/settings?tab=storage&google=connected`);
+    if (upErr) {
+      reason = 'store_failed';
+      console.error('google-oauth-callback upsert error', upErr);
+      headers.set('Location', `${appBase}/settings?tab=storage&google=error&reason=${reason}`);
+    } else {
+      headers.set('Location', `${appBase}/settings?tab=storage&google=connected`);
+    }
     return new Response(null, { status: 302, headers });
-  } catch {
-    headers.set('Location', `${appBase}/settings?tab=storage&google=error`);
+  } catch (e: any) {
+    reason = (typeof e?.message === 'string' && e.message.startsWith('Missing env:')) ? 'env_missing' : 'exception';
+    console.error('google-oauth-callback exception', e);
+    headers.set('Location', `${appBase}/settings?tab=storage&google=error&reason=${reason}`);
     return new Response(null, { status: 302, headers });
   }
 });

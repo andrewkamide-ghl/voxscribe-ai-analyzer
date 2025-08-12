@@ -32,6 +32,13 @@ export default function IntegrationsPanel() {
 
   useEffect(() => { refresh(); }, [session]);
 
+  // Refresh when window regains focus (after OAuth redirect)
+  useEffect(() => {
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [session]);
+
   async function connectGoogle() {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke<{ url: string }>('google-oauth-start');
