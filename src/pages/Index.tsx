@@ -24,6 +24,7 @@ import { callsStore } from "@/store/calls";
 import { liveSession, type LiveSessionState } from "@/store/live-session";
 import { contactsStore, type Contact } from "@/store/contacts";
 import { Progress } from "@/components/ui/progress";
+import { saveRunAsDoc, saveRunAsPDF, saveRunAsText } from "@/utils/export";
 // Live session state and sample data are managed in src/store/live-session.ts
 
 const Index = () => {
@@ -588,9 +589,9 @@ setUnreadIds((prevSet) => {
                                     <Button variant="outline" size="sm">Save</Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="z-50">
-                                    <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsText(run)}>Text file (.txt)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsDoc(run)}>Word file (.doc)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsPDF(run)}>PDF (.pdf)</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                                 <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
@@ -629,9 +630,9 @@ setUnreadIds((prevSet) => {
                                     <Button variant="outline" size="sm">Save</Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="z-50">
-                                    <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsText(run)}>Text file (.txt)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsDoc(run)}>Word file (.doc)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsPDF(run)}>PDF (.pdf)</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                                 <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>
@@ -669,9 +670,9 @@ setUnreadIds((prevSet) => {
                                     <Button variant="outline" size="sm">Save</Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="z-50">
-                                    <DropdownMenuItem onClick={() => onSaveTo("supabase", run)}>Supabase</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onSaveTo("gdrive", run)}>Google Drive</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onSaveTo("dropbox", run)}>Dropbox</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsText(run)}>Text file (.txt)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsDoc(run)}>Word file (.doc)</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => saveRunAsPDF(run)}>PDF (.pdf)</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                                 <Button variant="outline" size="sm" onClick={() => downloadRun(run)}>

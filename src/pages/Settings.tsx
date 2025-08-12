@@ -13,12 +13,12 @@ import CrawlPanel from "@/components/CrawlPanel";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/store/i18n";
-import { StorageProvider, useStorageSettings } from "@/store/storage";
-import BYOKManager from "@/components/BYOKManager";
-import IntegrationsPanel from "@/components/IntegrationsPanel";
-import { supabase } from "@/integrations/supabase/client";
 
-const TABS = ["account", "billing", "ai", "storage"] as const;
+import BYOKManager from "@/components/BYOKManager";
+
+
+
+const TABS = ["account", "billing", "ai"] as const;
 type TabKey = typeof TABS[number];
 
 const Settings = () => {
@@ -26,8 +26,9 @@ const Settings = () => {
   const { t, lang, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") as TabKey) || "account";
-  const [tab, setTab] = useState<TabKey>(initialTab);
+const urlTab = searchParams.get("tab");
+const initialTab: TabKey = (TABS as readonly string[]).includes(urlTab ?? "") ? (urlTab as TabKey) : "account";
+const [tab, setTab] = useState<TabKey>(initialTab);
 
   useEffect(() => {
     setSearchParams((p) => {
@@ -37,37 +38,6 @@ const Settings = () => {
     });
   }, [tab, setSearchParams]);
 
-  // Show OAuth result toasts and clean query params
-  useEffect(() => {
-    if (tab !== 'storage') return;
-    const google = searchParams.get('google');
-    const dropbox = searchParams.get('dropbox');
-    const reason = searchParams.get('reason');
-
-    const show = (provider: string, status: string | null) => {
-      if (!status) return;
-      if (status === 'connected') {
-        toast({ title: `${provider} connected` });
-      } else if (status === 'error') {
-        const msg = reason ? `Reason: ${reason}` : 'There was an error completing the connection.';
-        toast({ title: `${provider} connect failed`, description: msg });
-      }
-    };
-    show('Google Drive', google);
-    show('Dropbox', dropbox);
-
-    if (google || dropbox) {
-      setSearchParams((p) => {
-        const next = new URLSearchParams(p);
-        next.delete('google');
-        next.delete('dropbox');
-        next.delete('reason');
-        next.set('tab', 'storage');
-        return next;
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   // Account forms state
   const [newEmail, setNewEmail] = useState("");
@@ -76,9 +46,6 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
-  // Storage settings
-  const { connections, defaultProvider, connect, disconnect, setDefault } = useStorageSettings();
-  const isConnected = (p: StorageProvider) => Boolean(connections[p]);
 
   const leftNavItemCls = (key: TabKey) =>
     key === tab ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
@@ -86,8 +53,8 @@ const Settings = () => {
   return (
     <div className="container mx-auto px-4 py-6">
       <Helmet>
-        <title>Settings — Account, Billing, AI Assistants & Storage</title>
-        <meta name="description" content="Manage account, billing, AI assistants, and storage preferences." />
+        <title>Settings — Account, Billing & AI</title>
+        <meta name="description" content="Manage your account, billing, and AI preferences." />
         <link
           rel="canonical"
           href={typeof window !== "undefined" ? window.location.href : "https://localhost:8080/settings"}
@@ -111,9 +78,6 @@ const Settings = () => {
             </button>
             <button type="button" onClick={() => setTab("ai")} className={`w-full text-left rounded-md px-3 py-2 ${leftNavItemCls("ai")}`} aria-current={tab === "ai" ? "page" : undefined}>
               {t("settings.ai")}
-            </button>
-            <button type="button" onClick={() => setTab("storage")} className={`w-full text-left rounded-md px-3 py-2 ${leftNavItemCls("storage")}`} aria-current={tab === "storage" ? "page" : undefined}>
-              {t("settings.storage")}
             </button>
           </nav>
         </aside>
@@ -245,73 +209,6 @@ const Settings = () => {
             </div>
           )}
 
-          {tab === "storage" && (
-            <div className="space-y-4">
-              <Card className="p-4 space-y-3">
-                <h2 className="text-lg font-semibold">Cloud Integrations</h2>
-                <IntegrationsPanel />
-              </Card>
-              <Card className="p-4 space-y-3">
-                <h2 className="text-lg font-semibold">{t("storage.connect")}</h2>
-                {["icloud"].map((p) => {
-                  const provider = p as StorageProvider;
-                  const nameMap: Record<StorageProvider, string> = {
-                    google: t("storage.google"),
-                    dropbox: t("storage.dropbox"),
-                    icloud: t("storage.icloud"),
-                  };
-                  const connected = isConnected(provider);
-                  return (
-                    <div key={provider} className="flex items-center justify-between border rounded-md px-3 py-2">
-                      <div>
-                        <div className="font-medium">{nameMap[provider]}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {connected ? t("actions.connected") : t("actions.notConnected")}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {!connected ? (
-                          <Button type="button" onClick={() => {
-                            const token = window.prompt(`Paste ${nameMap[provider]} token (placeholder)`);
-                            if (token) {
-                              connect(provider, token);
-                              toast({ title: nameMap[provider], description: t("actions.connected") });
-                            }
-                          }}>{t("actions.connect")}</Button>
-                        ) : (
-                          <Button type="button" variant="outline" onClick={() => {
-                            disconnect(provider);
-                            toast({ title: nameMap[provider], description: t("actions.disconnect") });
-                          }}>{t("actions.disconnect")}</Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </Card>
-
-              <Card className="p-4 space-y-2">
-                <h3 className="text-base font-semibold">{t("storage.default")}</h3>
-                <Select
-                  value={defaultProvider ?? undefined}
-                  onValueChange={(v) => setDefault(v as StorageProvider)}
-                >
-                  <SelectTrigger aria-label="Default storage">
-                    <SelectValue placeholder={t("storage.default")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(["google", "dropbox", "icloud"] as StorageProvider[])
-                      .filter((p) => isConnected(p))
-                      .map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p === "google" ? t("storage.google") : p === "dropbox" ? t("storage.dropbox") : t("storage.icloud")}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </Card>
-            </div>
-          )}
         </section>
       </div>
     </div>

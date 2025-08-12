@@ -9,6 +9,8 @@ import { researchStore, type ResearchItem } from '@/store/research';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { saveResearchAsDoc, saveResearchAsPDF, saveResearchAsText } from '@/utils/export';
 
 const Research = () => {
   const [items, setItems] = useState<ResearchItem[]>([]);
@@ -73,7 +75,17 @@ const remove = (id: string) => {
                       <Badge variant="outline">{it.type}</Badge>
                     </div>
                     <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-48 whitespace-pre-wrap">{it.content}</pre>
-                    <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">Save As</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => saveResearchAsText(it)}>Text file (.txt)</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => saveResearchAsDoc(it)}>Word file (.doc)</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => saveResearchAsPDF(it)}>PDF (.pdf)</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button size="sm" variant="destructive" onClick={() => remove(it.id)}>Delete</Button>
                     </div>
                   </div>
